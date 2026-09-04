@@ -35,13 +35,14 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (credentials: { email: string; password: string }) => Promise<AuthResult>;
+  loginWithGoogle: (accessToken: string) => Promise<AuthResult>;
   register: (data: Record<string, unknown>) => Promise<AuthResult>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 export async function apiRequest<T>(
   path: string,
@@ -113,6 +114,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginWithGoogle = async (accessToken: string) => {
+    try {
+      const data = await apiRequest<{ user: User; token: string }>("/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ accessToken }),
+      });
+
+      localStorage.setItem("token", data.token);
+      setUser(data.user);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro no login com Google.",
+      };
+    }
+  };
+
   const register = async (registerData: Record<string, unknown>) => {
     try {
       const data = await apiRequest<{ message?: string }>("/auth/register", {
@@ -140,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: Boolean(user),
       isAdmin: user?.role === "admin",
       login,
+      loginWithGoogle,
       register,
       logout,
       refreshUser,

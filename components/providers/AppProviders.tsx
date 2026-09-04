@@ -1,23 +1,26 @@
 "use client";
 
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { CheckoutProvider } from "@/contexts/CheckoutContext";
-import CartDrawer from "@/components/cart/CartDrawer";
 
 export default function AppProviders({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+  const content = (
     <AuthProvider>
       <CartProvider>
-        <CheckoutProvider>
-          {children}
-          <CartDrawer />
-        </CheckoutProvider>
+        <CheckoutProvider>{children}</CheckoutProvider>
       </CartProvider>
     </AuthProvider>
   );
+
+  if (!clientId) return content;
+
+  return <GoogleOAuthProvider clientId={clientId}>{content}</GoogleOAuthProvider>;
 }

@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -75,6 +76,14 @@ export default function LoginForm() {
           {loading ? "Entrando..." : "Entrar"}
         </button>
       </form>
+
+      <div className="my-5 flex items-center gap-3 text-xs text-gray-400">
+        <span className="h-px flex-1 bg-[#eee4da]" />
+        <span>ou</span>
+        <span className="h-px flex-1 bg-[#eee4da]" />
+      </div>
+
+      <GoogleLoginButton />
 
       <p className="mt-5 text-center text-sm text-gray-500">
         Ainda não possui conta?{" "}

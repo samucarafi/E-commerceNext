@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { calculateShipping, getShippingConfig } from "@/services/shipping.service";
@@ -59,6 +59,12 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   const [couponError, setCouponError] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
+
+  useEffect(() => {
+    if (user?.addresses?.[0] && !address.cep) {
+      setAddress(user.addresses[0]);
+    }
+  }, [user, address.cep]);
 
   const lookupCep = async () => {
     const data = await findAddressByCep(address.cep);
@@ -131,11 +137,17 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
 
   const getTotal = () => {
     const discount = getDiscount();
-    const shippingDiscount = coupon?.type === "shipping" ? discount : 0;
+
+    if (coupon?.type === "shipping") {
+      return Math.max(
+        0,
+        Number((getTotalPrice() + Math.max(0, shipping - discount)).toFixed(2)),
+      );
+    }
 
     return Math.max(
       0,
-      Number((getTotalPrice() + shipping - discount + shippingDiscount).toFixed(2)),
+      Number((getTotalPrice() + shipping - discount).toFixed(2)),
     );
   };
 
