@@ -1,25 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import { OAuth2Client } from "google-auth-library";
-import User from "@/models/User";
+import bcrypt from "bcryptjs";
 import { connectMongoDB } from "@/lib/mongodb";
-import { signUserToken, sanitizeUser } from "@/lib/auth-server";
+import { User } from "@/models/User";
+import { createToken } from "@/lib/auth-server";
+
+type GoogleUserInfo = {
+  email?: string;
+  name?: string;
+  picture?: string;
+  verified_email?: boolean;
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const { accessToken } = await request.json();
+    await connectMongoDB();
 
-    if (!accessToken) {
+    const { access_token } = await request.json();
+
+    if (!access_token) {
       return NextResponse.json(
         { error: "Token do Google não informado." },
         { status: 400 },
       );
     }
 
-    const client = new OAuth2Client();
     const response = await fetch(
-      `https://www.googleapis.com/oauth2/v3/userinfo`,
+      "https://www.googleapis.com/oauth2/v3/userinfo",
       {
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
       },
     );
 
@@ -30,57 +40,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const googleUser = await response.json();
+    const googleUser = (await response.json()) as GoogleUserInfo;
 
-    if (!googleUser.email || !googleUser.email_verified) {
+    if (!googleUser.email || googleUser.verified_email === false) {
       return NextResponse.json(
-        { error: "A conta Google precisa possuir e-mail verificado." },
+        { error: "Não foi possível validar o e-mail do Google." },
         { status: 401 },
       );
     }
 
-    await connectMongoDB();
+    const email = googleUser.email.toLowerCase().trim();
 
-    let user = await User.findOne({
-      email: googleUser.email.toLowerCase().trim(),
-    });
+    let user = await User.findOne({ email });
 
     if (!user) {
+      // Conta criada via Google não utiliza senha.
+      // Mantemos um hash aleatório apenas para satisfazer modelos
+      // que ainda tenham password como campo obrigatório.
+      const unusablePassword = await bcrypt.hash(
+        `${crypto.randomUUID()}-${access_token}`,
+        10,
+      );
+
       user = await User.create({
-        name: googleUser.name || "Cliente Royal",
-        email: googleUser.email.toLowerCase().trim(),
-        password: null,
-        verified: true,
+        name: googleUser.name || email.split("@")[0],
+        email,
+        password: unusablePassword,
         role: "user",
-        affiliate: {
-          couponCode: `${String(googleUser.name || "ROYAL")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/[^a-zA-Z]/g, "")
-            .toUpperCase()
-            .slice(0, 8)}${Math.floor(1000 + Math.random() * 9000)}`,
-        },
+        verified: true,
       });
-    } else if (!user.verified) {
-      user.verified = true;
-      await user.save();
     }
 
-    const token = signUserToken({
+    const token = createToken({
       _id: String(user._id),
       name: user.name,
       role: user.role,
     });
 
     return NextResponse.json({
-      message: "Login com Google realizado com sucesso.",
       token,
-      user: sanitizeUser(user),
+      user: {
+        _id: String(user._id),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
-  } catch (error) {
-    console.error("POST /api/auth/google:", error);
+  } catch (error: unknown) {
+    console.error("Erro no login com Google:", error);
+
     return NextResponse.json(
-      { error: "Erro ao autenticar com Google." },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro ao autenticar com Google.",
+      },
       { status: 500 },
     );
   }
