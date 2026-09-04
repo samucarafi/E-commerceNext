@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-server";
-import { connectMongoDB } from "@/lib/mongodb";
 import { createPendingOrder } from "@/lib/checkout";
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser(request);
+    const user = await getAuthenticatedUser();
 
     if (!user) {
       return NextResponse.json(
@@ -15,19 +14,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-
-    await connectMongoDB();
-
-    const result = await createPendingOrder(body, user._id);
+    const result = await createPendingOrder(body, String(user._id));
 
     return NextResponse.json(result, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("POST /api/checkout:", error);
 
     const message =
       error instanceof SyntaxError
         ? "JSON inválido."
-        : error?.message || "Erro ao criar pedido.";
+        : error instanceof Error
+          ? error.message
+          : "Erro ao criar pedido.";
 
     return NextResponse.json({ error: message }, { status: 400 });
   }

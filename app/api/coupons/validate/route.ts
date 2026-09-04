@@ -5,9 +5,19 @@ import Order from "@/models/Order";
 import User from "@/models/User";
 import { hashCpf } from "@/lib/cpf";
 
+type AffiliateData = {
+  couponCode?: string;
+  discountPercentage?: number;
+};
+
+type AffiliateUser = {
+  _id: unknown;
+  affiliate?: AffiliateData;
+};
+
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser(request);
+    const user = await getAuthenticatedUser();
 
     if (!user) {
       return NextResponse.json(
@@ -64,9 +74,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const affiliateUser = await User.findOne({
+    const affiliateUser = (await User.findOne({
       "affiliate.couponCode": couponCode,
-    }).lean();
+    }).lean()) as AffiliateUser | null;
 
     if (!affiliateUser) {
       return NextResponse.json(
