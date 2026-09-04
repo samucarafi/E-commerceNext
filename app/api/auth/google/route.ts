@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectMongoDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
-import { createToken } from "@/lib/auth-server";
+import { signUserToken } from "@/lib/auth-server";
 
 type GoogleUserInfo = {
   email?: string;
@@ -70,13 +70,7 @@ export async function POST(request: NextRequest) {
         verified: true,
       });
     }
-
-    const token = createToken({
-      _id: String(user._id),
-      name: user.name,
-      role: user.role,
-    });
-
+    const token = signUserToken(String(user._id));
     return NextResponse.json({
       token,
       user: {
