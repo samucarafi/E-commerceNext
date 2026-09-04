@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { connectMongoDB } from "@/lib/mongodb";
-import { User } from "@/models/User";
+import User from "@/models/User";
 import { signUserToken } from "@/lib/auth-server";
 
 type GoogleUserInfo = {
