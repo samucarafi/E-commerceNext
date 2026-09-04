@@ -1,67 +1,80 @@
+import Link from "next/link";
 import Image from "next/image";
+import { getProducts } from "@/lib/products";
+import ProductCard from "@/components/products/ProductCard";
 
-export default function Home() {
+export const revalidate = 60;
+
+export default async function HomePage() {
+  const products = await getProducts();
+  const newProducts = products.filter((p) => p.isNewProduct).slice(0, 1);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-[#F8F5F2]">
+      <section className="gradient-bg text-[#F5E6D3] py-24 md:py-36 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-black/10" />
+        <div className="relative max-w-[1400px] mx-auto px-6 text-center">
+          <p className="text-[#C6A75E] text-[10px] tracking-[0.35em] uppercase mb-5">
+            Alta Perfumaria
           </p>
+          <h1 className="font-[family-name:var(--font-playfair)] text-4xl md:text-6xl font-extralight mb-6 tracking-[0.12em]">
+            Essência <span className="text-[#C6A75E]">&</span> Luxo
+          </h1>
+          <p className="text-base md:text-lg mb-10 text-[#E8D8C3]/70 max-w-xl mx-auto leading-loose">
+            Fragrâncias exclusivas das melhores maisons de perfumaria do mundo.
+          </p>
+          <Link href="/produtos" className="btn-gold inline-block px-10 py-3.5 rounded-full text-sm tracking-[0.18em] uppercase">
+            Explorar Coleção
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {newProducts.length > 0 && (
+        <section className="bg-[#171717] py-14">
+          <div className="max-w-[1400px] mx-auto px-6">
+            <p className="text-[#C6A75E] text-[10px] tracking-[0.3em] uppercase mb-1">Em Destaque</p>
+            <h2 className="text-xl font-light text-[#F5E6D3] mb-10">Lançamentos</h2>
+            <div className="grid md:grid-cols-2 gap-10 items-center">
+              <Link href={`/produtos/${newProducts[0].slug}`} className="bg-[#1E1E1E] rounded-3xl aspect-square max-w-[420px] overflow-hidden">
+                <Image
+                  src={newProducts[0].image || "/images/default-perfume.jpg"}
+                  alt={newProducts[0].name}
+                  width={700}
+                  height={700}
+                  className="w-full h-full object-contain p-10 hover:scale-105 transition-transform duration-500"
+                />
+              </Link>
+              <div className="text-center md:text-left">
+                <span className="inline-block bg-[#C6A75E] text-[#111] text-[10px] font-bold px-3 py-1 rounded-full tracking-[0.15em] uppercase mb-5">
+                  Novo
+                </span>
+                <p className="text-[#888] text-sm mb-2">{newProducts[0].brand}</p>
+                <h2 className="font-[family-name:var(--font-playfair)] text-3xl md:text-4xl font-light text-[#F5E6D3] mb-4">
+                  {newProducts[0].name}
+                </h2>
+                <p className="text-[#999] leading-relaxed mb-6 max-w-sm">{newProducts[0].description}</p>
+                <p className="text-2xl font-light text-[#C6A75E] mb-8">
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(newProducts[0].price)}
+                </p>
+                <Link href={`/produtos/${newProducts[0].slug}`} className="inline-block bg-[#C6A75E] text-[#111] px-9 py-3.5 rounded-full text-sm font-semibold">
+                  Ver Produto
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <main id="products" className="max-w-[1400px] mx-auto px-6 py-14">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <p className="text-[#C6A75E] text-[10px] tracking-[0.28em] uppercase mb-1">Catálogo</p>
+            <h2 className="font-[family-name:var(--font-playfair)] text-xl font-light">Nossas Fragrâncias</h2>
+          </div>
+          <span className="text-xs text-gray-400">{products.length} produtos</span>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-7">
+          {products.slice(0, 12).map((product) => <ProductCard key={product.id} product={product} />)}
         </div>
       </main>
     </div>
