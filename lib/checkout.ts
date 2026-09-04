@@ -182,18 +182,27 @@ export async function createPendingOrder(input: CheckoutInput, userId: string) {
       .toFixed(2),
   );
 
-  const config = await ShippingConfig.findOne().sort({ createdAt: -1 }).lean();
-  const state = cleanState(address.state);
+  const config = (await ShippingConfig.findOne()
+    .sort({ createdAt: -1 })
+    .lean()) as {
+    shippingByState?: Map<string, number> | Record<string, number>;
+    freeShippingMinValue?: number;
+  } | null;
 
-  const configuredShipping = Number(
-    config?.shippingByState?.get?.(state) ??
-      (config?.shippingByState as any)?.[state] ??
-      0,
-  );
+  const state = cleanState(address.state);
+  const shippingByState = config?.shippingByState;
+
+  let configuredShipping = 0;
+  if (shippingByState instanceof Map) {
+    configuredShipping = Number(shippingByState.get(state) ?? 0);
+  } else if (shippingByState && typeof shippingByState === "object") {
+    configuredShipping = Number(shippingByState[state] ?? 0);
+  }
+
+  const freeShippingMinValue = Number(config?.freeShippingMinValue ?? 0);
 
   const originalShipping =
-    Number(config?.freeShippingMinValue || 0) > 0 &&
-    itemsTotal >= Number(config?.freeShippingMinValue || 0)
+    freeShippingMinValue > 0 && itemsTotal >= freeShippingMinValue
       ? 0
       : configuredShipping;
 
@@ -255,7 +264,7 @@ export async function createPendingOrder(input: CheckoutInput, userId: string) {
   if (!user.cpfHash) user.cpfHash = cpfHash;
 
   const alreadySavedAddress = user.addresses?.some(
-    (saved) =>
+    (saved: { cep: string; number: string }) =>
       saved.cep === address.cep &&
       saved.number === address.number,
   );

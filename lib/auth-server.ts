@@ -3,10 +3,12 @@ import { headers } from "next/headers";
 import { connectMongoDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET não configurado.");
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET não configurado.");
+  }
+  return secret;
 }
 
 type TokenPayload = {
@@ -24,7 +26,7 @@ export async function getAuthenticatedUser() {
   if (!token) return null;
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    const payload = jwt.verify(token, getJwtSecret()) as TokenPayload;
     const userId = payload.id ?? payload._id;
     if (!userId) return null;
 
@@ -36,7 +38,7 @@ export async function getAuthenticatedUser() {
 }
 
 export function signUserToken(userId: string) {
-  return jwt.sign({ id: userId }, JWT_SECRET!, { expiresIn: "7d" });
+  return jwt.sign({ id: userId }, getJwtSecret(), { expiresIn: "7d" });
 }
 
 export function sanitizeUser(user: {

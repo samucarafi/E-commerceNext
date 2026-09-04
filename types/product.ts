@@ -1,5 +1,7 @@
 export type Product = {
   id: string;
+  /** ID do MongoDB mantido para compatibilidade com o carrinho e APIs legadas. */
+  _id: string;
   slug: string;
   name: string;
   price: number;

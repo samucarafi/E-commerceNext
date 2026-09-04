@@ -13,20 +13,23 @@ function slugify(value: string) {
 }
 
 function normalizeProduct(product: Record<string, unknown>): ProductType {
+  const id = String(product._id ?? product.id);
+
   return {
-    id: String(product._id ?? product.id),
+    id,
+    _id: id,
     name: String(product.name ?? ""),
     price: Number(product.price ?? 0),
     description: String(product.description ?? ""),
     image: String(product.image ?? ""),
     stock: Number(product.stock ?? 0),
-    category: product.category as ProductType["category"],
+    category: String(product.category ?? ""),
     type: product.type as ProductType["type"],
     gender: product.gender as ProductType["gender"],
     isNewProduct: Boolean(product.isNewProduct),
     brand: String(product.brand ?? ""),
-    weight: product.weight ? Number(product.weight) : undefined,
-    popularity: product.popularity ? Number(product.popularity) : undefined,
+    weight: product.weight != null ? Number(product.weight) : undefined,
+    popularity: product.popularity != null ? Number(product.popularity) : undefined,
     slug: String(product.slug ?? slugify(String(product.name ?? ""))),
   };
 }
