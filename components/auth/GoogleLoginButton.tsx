@@ -13,6 +13,12 @@ export default function GoogleLoginButton() {
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setError("");
+
+      if (!tokenResponse.access_token) {
+        setError("O Google não retornou um token de acesso.");
+        return;
+      }
+
       const result = await loginWithGoogle(tokenResponse.access_token);
 
       if (!result.success) {
@@ -23,7 +29,9 @@ export default function GoogleLoginButton() {
       router.push("/");
       router.refresh();
     },
-    onError: () => setError("Não foi possível iniciar o login com Google."),
+    onError: () => {
+      setError("Não foi possível iniciar o login com Google.");
+    },
   });
 
   return (

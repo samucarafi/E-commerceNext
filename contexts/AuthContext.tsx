@@ -64,7 +64,9 @@ export async function apiRequest<T>(
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data?.error || data?.message || "Não foi possível concluir a operação.");
+    throw new Error(
+      data?.error || data?.message || "Não foi possível concluir a operação.",
+    );
   }
 
   return data;
@@ -75,17 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = async () => {
-    if (typeof window !== "undefined" && !localStorage.getItem("token")) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
     try {
       const data = await apiRequest<{ user: User }>("/auth/profile");
       setUser(data.user);
     } catch {
-      if (typeof window !== "undefined") localStorage.removeItem("token");
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+      }
       setUser(null);
     } finally {
       setLoading(false);
@@ -98,10 +96,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: { email: string; password: string }) => {
     try {
-      const data = await apiRequest<{ user: User; token: string }>("/auth/login", {
-        method: "POST",
-        body: JSON.stringify(credentials),
-      });
+      const data = await apiRequest<{ user: User; token: string }>(
+        "/auth/login",
+        {
+          method: "POST",
+          body: JSON.stringify(credentials),
+        },
+      );
 
       localStorage.setItem("token", data.token);
       setUser(data.user);
@@ -116,10 +117,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithGoogle = async (accessToken: string) => {
     try {
-      const data = await apiRequest<{ user: User; token: string }>("/auth/google", {
-        method: "POST",
-        body: JSON.stringify({ accessToken }),
-      });
+      if (!accessToken) {
+        return { success: false, error: "Token do Google não informado." };
+      }
+
+      const data = await apiRequest<{ user: User; token: string }>(
+        "/auth/google",
+        {
+          method: "POST",
+          body: JSON.stringify({ accessToken }),
+        },
+      );
 
       localStorage.setItem("token", data.token);
       setUser(data.user);
@@ -151,8 +159,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    localStorage.removeItem("token");
-    setUser(null);
+    try {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      localStorage.removeItem("token");
+      setUser(null);
+    }
   };
 
   const value = useMemo(
@@ -175,6 +190,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth deve ser usado dentro de AuthProvider.");
+  if (!context) {
+    throw new Error("useAuth deve ser usado dentro de AuthProvider.");
+  }
   return context;
 }

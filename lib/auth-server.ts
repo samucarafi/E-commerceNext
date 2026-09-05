@@ -1,28 +1,31 @@
 import jwt from "jsonwebtoken";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { connectMongoDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("JWT_SECRET não configurado.");
-  }
+  if (!secret) throw new Error("JWT_SECRET não configurado.");
   return secret;
 }
 
-type TokenPayload = {
-  id?: string;
-  _id?: string;
-};
+type TokenPayload = { id?: string; _id?: string };
 
 export async function getAuthenticatedUser() {
   const requestHeaders = await headers();
   const authorization = requestHeaders.get("authorization");
 
-  if (!authorization?.startsWith("Bearer ")) return null;
+  let token = authorization?.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length).trim()
+    : null;
 
-  const token = authorization.slice("Bearer ".length).trim();
+  // Server Components/layouts não conseguem ler localStorage.
+  // O cookie HttpOnly permite autenticar navegações como /admin.
+  if (!token) {
+    const cookieStore = await cookies();
+    token = cookieStore.get("token")?.value ?? null;
+  }
+
   if (!token) return null;
 
   try {

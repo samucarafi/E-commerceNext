@@ -59,7 +59,7 @@ export default function Header() {
                 <div className="border-b border-[#2A2A2A] px-4 py-3"><p className="text-sm font-semibold text-[#F5E6D3]">{user?.name}</p><p className="truncate text-xs text-gray-500">{user?.email}</p></div>
                 <Link href="/profile" onClick={() => setUserOpen(false)} className="block px-4 py-2.5 text-sm text-[#F5E6D3] hover:bg-[#2A2A2A]">Meu Perfil</Link>
                 <Link href="/orders" onClick={() => setUserOpen(false)} className="block px-4 py-2.5 text-sm text-[#F5E6D3] hover:bg-[#2A2A2A]">Meus Pedidos</Link>
-                {isAdmin() && <Link href="/admin" onClick={() => setUserOpen(false)} className="block px-4 py-2.5 text-sm text-[#F5E6D3] hover:bg-[#2A2A2A]">Painel Admin</Link>}
+                {isAdmin && <Link href="/admin" onClick={() => setUserOpen(false)} className="block px-4 py-2.5 text-sm text-[#F5E6D3] hover:bg-[#2A2A2A]">Painel Admin</Link>}
                 <button onClick={() => { logout(); setUserOpen(false); }} className="w-full border-t border-[#2A2A2A] px-4 py-2.5 text-left text-sm text-[#C6A75E]">Sair</button>
               </div>}
             </div>

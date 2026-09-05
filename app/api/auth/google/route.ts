@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import User from "@/models/User";
-import { signUserToken } from "@/lib/auth-server";
+import { sanitizeUser, signUserToken } from "@/lib/auth-server";
 
 type GoogleUserInfo = {
   email?: string;
@@ -11,36 +11,54 @@ type GoogleUserInfo = {
   verified_email?: boolean;
 };
 
+function setAuthCookie(response: NextResponse, token: string) {
+  response.cookies.set("token", token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
-    await connectMongoDB();
+    const body = await request.json();
 
-    const { access_token } = await request.json();
+    // O frontend envia accessToken. Aceitamos também access_token
+    // para evitar quebra caso algum cliente antigo ainda use esse nome.
+    const accessToken =
+      typeof body?.accessToken === "string"
+        ? body.accessToken.trim()
+        : typeof body?.access_token === "string"
+          ? body.access_token.trim()
+          : "";
 
-    if (!access_token) {
+    if (!accessToken) {
       return NextResponse.json(
         { error: "Token do Google não informado." },
         { status: 400 },
       );
     }
 
-    const response = await fetch(
+    await connectMongoDB();
+
+    const googleResponse = await fetch(
       "https://www.googleapis.com/oauth2/v3/userinfo",
       {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
       },
     );
 
-    if (!response.ok) {
+    if (!googleResponse.ok) {
       return NextResponse.json(
         { error: "Token do Google inválido." },
         { status: 401 },
       );
     }
 
-    const googleUser = (await response.json()) as GoogleUserInfo;
+    const googleUser = (await googleResponse.json()) as GoogleUserInfo;
 
     if (!googleUser.email || googleUser.verified_email === false) {
       return NextResponse.json(
@@ -50,15 +68,11 @@ export async function POST(request: NextRequest) {
     }
 
     const email = googleUser.email.toLowerCase().trim();
-
     let user = await User.findOne({ email });
 
     if (!user) {
-      // Conta criada via Google não utiliza senha.
-      // Mantemos um hash aleatório apenas para satisfazer modelos
-      // que ainda tenham password como campo obrigatório.
       const unusablePassword = await bcrypt.hash(
-        `${crypto.randomUUID()}-${access_token}`,
+        `${crypto.randomUUID()}-${accessToken}`,
         10,
       );
 
@@ -70,16 +84,15 @@ export async function POST(request: NextRequest) {
         verified: true,
       });
     }
+
     const token = signUserToken(String(user._id));
-    return NextResponse.json({
+    const response = NextResponse.json({
       token,
-      user: {
-        _id: String(user._id),
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+      user: sanitizeUser(user),
     });
+
+    setAuthCookie(response, token);
+    return response;
   } catch (error: unknown) {
     console.error("Erro no login com Google:", error);
 
