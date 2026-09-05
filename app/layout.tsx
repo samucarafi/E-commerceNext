@@ -1,29 +1,45 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/layout/Header";
-import Providers from "./providers";
+import AppProviders from "@/components/providers/AppProviders";
 
-const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+});
+
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001",
+  ),
   title: {
     default: "Royal Parfums | Alta Perfumaria",
     template: "%s | Royal Parfums",
   },
   description:
-    "Fragrâncias exclusivas e perfumes selecionados pela Royal Parfums.",
+    "Descubra fragrâncias selecionadas na Royal Parfums. Perfumes e decantes para encontrar sua assinatura.",
+  applicationName: "Royal Parfums",
+  openGraph: {
+    type: "website",
+    siteName: "Royal Parfums",
+    title: "Royal Parfums | Alta Perfumaria",
+    description:
+      "Perfumes e decantes selecionados para encontrar sua assinatura.",
+  },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${playfair.variable} ${inter.variable}`}>
-        <Providers>
-          <Header />
-          {children}
-        </Providers>
+      <body className={`${playfair.variable} ${inter.variable} antialiased`}>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
