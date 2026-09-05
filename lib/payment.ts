@@ -2,115 +2,117 @@ import mongoose from "mongoose";
 import Order from "@/models/Order";
 import User from "@/models/User";
 import Product from "@/models/Product";
-import { getMercadoPagoPayment, MercadoPagoPixPayment } from "@/lib/mercadopago";
+import { getMercadoPagoPayment } from "@/lib/mercadopago";
 
-export function mapPaymentStatus(status?: string) {
-  if (status === "approved") return "approved" as const;
-  if (status === "rejected" || status === "cancelled") return "rejected" as const;
-  return "pending" as const;
+type PaymentStatus = "pending" | "approved" | "rejected";
+
+type MercadoPagoPayment = {
+  id: string | number;
+  status?: string;
+};
+
+function mapPaymentStatus(status?: string): PaymentStatus {
+  if (status === "approved") return "approved";
+  if (status === "rejected" || status === "cancelled" || status === "refunded") {
+    return "rejected";
+  }
+  return "pending";
 }
 
-async function finalizeApprovedOrder(
+export async function finalizeApprovedOrder(
   orderId: string,
   paymentId: string,
 ) {
   const session = await mongoose.startSession();
 
   try {
-    session.startTransaction();
+    let result;
 
-    const order = await Order.findOne({ orderId }).session(session);
+    await session.withTransaction(async () => {
+      const order = (await Order.findOne({ orderId }).session(session)) as any;
 
-    if (!order) throw new Error("Pedido não encontrado.");
-
-    // Idempotência: se já foi aprovado, não baixa estoque nem comissão novamente.
-    if (order.payment?.status === "approved") {
-      await session.commitTransaction();
-      return order;
-    }
-
-    for (const item of order.items) {
-      if (!item.productId) continue;
-
-      const result = await Product.updateOne(
-        {
-          _id: item.productId,
-          stock: { $gte: Number(item.quantity) },
-        },
-        {
-          $inc: { stock: -Number(item.quantity) },
-        },
-        { session },
-      );
-
-      if (result.modifiedCount !== 1) {
-        throw new Error(`Estoque insuficiente para o produto ${item.title}.`);
+      if (!order) {
+        throw new Error("Pedido não encontrado.");
       }
-    }
 
-    order.payment.status = "approved";
-    order.payment.mpPaymentId = paymentId;
+      if (order.payment?.status === "approved") {
+        result = order;
+        return;
+      }
 
-    if (order.coupon?.applied && order.coupon.code) {
-      await User.updateOne(
-        {
-          _id: order.userId,
-          "usedCoupons.code": { $ne: order.coupon.code },
-        },
-        {
-          $push: {
-            usedCoupons: {
-              code: order.coupon.code,
-              usedAt: new Date(),
+      for (const item of order.items ?? []) {
+        const updated = await Product.updateOne(
+          {
+            _id: item.productId,
+            stock: { $gte: item.quantity },
+          },
+          {
+            $inc: { stock: -item.quantity },
+          },
+          { session },
+        );
+
+        if (updated.modifiedCount !== 1) {
+          throw new Error(`Estoque insuficiente para o produto ${item.title ?? item.productId}.`);
+        }
+      }
+
+      order.payment.status = "approved";
+      order.payment.mpPaymentId = paymentId;
+
+      if (order.coupon?.applied && order.coupon?.code) {
+        await User.updateOne(
+          {
+            _id: order.userId,
+            "usedCoupons.code": { $ne: order.coupon.code },
+          },
+          {
+            $push: {
+              usedCoupons: {
+                code: order.coupon.code,
+                usedAt: new Date(),
+              },
             },
           },
-        },
-        { session },
-      );
-    }
+          { session },
+        );
+      }
 
-    if (order.affiliate?.userId && order.affiliate.commissionValue) {
-      const commission = Number(order.affiliate.commissionValue);
-
-      await User.updateOne(
-        { _id: order.affiliate.userId },
-        {
-          $inc: {
-            "affiliate.totalEarned": commission,
-            "affiliate.pendingBalance": commission,
+      if (order.affiliate?.userId && order.affiliate?.commissionValue) {
+        await User.updateOne(
+          { _id: order.affiliate.userId },
+          {
+            $inc: {
+              "affiliate.totalEarned": order.affiliate.commissionValue,
+              "affiliate.pendingBalance": order.affiliate.commissionValue,
+            },
           },
-        },
-        { session },
-      );
+          { session },
+        );
 
-      order.affiliate.status = "approved";
-    }
+        order.affiliate.status = "approved";
+      }
 
-    await order.save({ session });
-    await session.commitTransaction();
+      await order.save({ session });
+      result = order;
+    });
 
-    return order;
-  } catch (error) {
-    await session.abortTransaction();
-    throw error;
+    return result;
   } finally {
     await session.endSession();
   }
 }
 
-export async function syncOrderPayment(payment: MercadoPagoPixPayment) {
-  if (!payment.id) throw new Error("Pagamento do Mercado Pago sem ID.");
-
-  const orderId = payment.external_reference;
-  if (!orderId) return null;
-
-  const status = mapPaymentStatus(payment.status);
-
+export async function syncOrderPayment(
+  orderId: string,
+  paymentId: string,
+  status: PaymentStatus,
+) {
   if (status === "approved") {
-    return finalizeApprovedOrder(orderId, String(payment.id));
+    return finalizeApprovedOrder(orderId, paymentId);
   }
 
-  return Order.findOneAndUpdate(
+  const order = (await Order.findOneAndUpdate(
     {
       orderId,
       "payment.status": { $ne: "approved" },
@@ -118,21 +120,39 @@ export async function syncOrderPayment(payment: MercadoPagoPixPayment) {
     {
       $set: {
         "payment.status": status,
-        "payment.mpPaymentId": String(payment.id),
+        "payment.mpPaymentId": paymentId,
       },
     },
     { new: true },
-  );
+  )) as any;
+
+  return order;
 }
 
 export async function refreshOrderPayment(orderId: string) {
-  const order = await Order.findOne({ orderId }).lean();
+  const order = (await Order.findOne({ orderId }).lean()) as any;
 
-  if (!order) throw new Error("Pedido não encontrado.");
-  if (!order.payment?.mpPaymentId) return order;
+  if (!order) {
+    throw new Error("Pedido não encontrado.");
+  }
 
-  const payment = await getMercadoPagoPayment(order.payment.mpPaymentId);
-  await syncOrderPayment(payment);
+  if (order.payment?.status === "approved" && order.payment?.mpPaymentId) {
+    return order;
+  }
 
-  return Order.findOne({ orderId }).lean();
+  if (!order.payment?.mpPaymentId) {
+    return order;
+  }
+
+  const payment = (await getMercadoPagoPayment(
+    order.payment.mpPaymentId,
+  )) as MercadoPagoPayment;
+
+  const status = mapPaymentStatus(payment.status);
+
+  return syncOrderPayment(
+    orderId,
+    String(payment.id),
+    status,
+  );
 }

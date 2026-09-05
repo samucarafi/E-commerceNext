@@ -1,29 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
-import { connectMongoDB } from "@/lib/mongodb";
-import { getMercadoPagoPayment } from "@/lib/mercadopago";
-import { syncOrderPayment } from "@/lib/payment";
+import { NextResponse } from "next/server";
+import { refreshOrderPayment } from "@/lib/payment";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = (await request.json().catch(() => null)) as
-      | { type?: string; data?: { id?: string | number } }
-      | null;
+    const body = await request.json();
 
+    // Mercado Pago pode enviar diferentes formatos de notificação.
+    // O ID do pagamento pode vir diretamente em data.id ou como query parameter.
     const paymentId =
-      body?.type === "payment" ? body.data?.id : undefined;
+      body?.data?.id ??
+      body?.id ??
+      new URL(request.url).searchParams.get("data.id") ??
+      new URL(request.url).searchParams.get("id");
 
     if (!paymentId) {
       return NextResponse.json({ received: true });
     }
 
-    await connectMongoDB();
-
-    const payment = await getMercadoPagoPayment(paymentId);
-    await syncOrderPayment(payment);
-
-    return NextResponse.json({ received: true });
+    const result = await refreshOrderPayment(String(paymentId));
+    return NextResponse.json({ received: true, ...result });
   } catch (error) {
-    console.error("Erro no webhook do Mercado Pago:", error);
-    return NextResponse.json({ received: false }, { status: 500 });
+    console.error("Erro no webhook de pagamento:", error);
+    return NextResponse.json({ received: true }, { status: 200 });
   }
 }

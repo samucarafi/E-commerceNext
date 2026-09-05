@@ -1,64 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
-import { connectMongoDB } from "@/lib/mongodb";
-import { getAuthenticatedUser } from "@/lib/auth-server";
-import Order from "@/models/Order";
-import { getMercadoPagoPayment } from "@/lib/mercadopago";
+import { NextResponse } from "next/server";
 import { syncOrderPayment } from "@/lib/payment";
+import { getAuthenticatedUser } from "@/lib/auth-server";
 
 export async function GET(
-  _request: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+  }
+
+  const { id } = await params;
+
   try {
-    const user = await getAuthenticatedUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    }
-
-    const { id } = await params;
-
-    await connectMongoDB();
-
-    const order = await Order.findOne({
-      userId: user._id,
-      "payment.mpPaymentId": id,
-    });
-
-    if (!order) {
-      return NextResponse.json(
-        { error: "Pagamento não encontrado." },
-        { status: 404 },
-      );
-    }
-
-    if (order.payment.status === "approved") {
-      return NextResponse.json({
-        paymentId: id,
-        status: "approved",
-      });
-    }
-
-    const payment = await getMercadoPagoPayment(id);
-    const updated = await syncOrderPayment(payment);
-
-    return NextResponse.json({
-      paymentId: String(payment.id),
-      status: updated?.payment?.status ?? order.payment.status,
-      mercadoPagoStatus: payment.status,
-      statusDetail: payment.status_detail,
-    });
-  } catch (error: unknown) {
-    console.error("Erro ao consultar PIX:", error);
-
+    const result = await syncOrderPayment(id, user._id.toString(), user.role);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Erro ao consultar status do pagamento:", error);
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Erro ao consultar pagamento.",
-      },
-      { status: 500 },
+      { message: error instanceof Error ? error.message : "Erro ao consultar pagamento." },
+      { status: 400 },
     );
   }
 }
