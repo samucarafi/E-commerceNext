@@ -65,10 +65,17 @@ export async function syncOrderPayment(orderId: string, paymentId: string, statu
 }
 
 export async function refreshOrderPayment(orderId: string) {
-  const order = await Order.findOne({ orderId }).lean();
+  const order = await Order.findOne({ orderId }).lean() as {
+    payment?: {
+      status?: PaymentStatus;
+      mpPaymentId?: string;
+    };
+  } | null;
+
   if (!order) throw new Error("Pedido não encontrado.");
   if (order.payment?.status === "approved" && order.payment?.mpPaymentId) return order;
   if (!order.payment?.mpPaymentId) return order;
+
   const payment = await getMercadoPagoPayment(order.payment.mpPaymentId) as MercadoPagoPayment;
   return syncOrderPayment(orderId, String(payment.id), mapPaymentStatus(payment.status));
 }
