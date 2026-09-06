@@ -99,11 +99,11 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   };
 
   // As funções abaixo dependem do estado do checkout; o memo acompanha esse estado.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const value = useMemo(() => ({
     address, cpf, shipping, shippingLoading, shippingConfig, coupon, couponLoading, couponError,
     checkoutLoading, checkoutError, setAddress, setCpf, lookupCep, calculateCurrentShipping,
     applyCoupon, removeCoupon, getDiscount, getTotal, submitCheckout,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [address, cpf, shipping, shippingLoading, shippingConfig, coupon, couponLoading, couponError, checkoutLoading, checkoutError, user, cartItems]);
 
   return <CheckoutContext.Provider value={value}>{children}</CheckoutContext.Provider>;

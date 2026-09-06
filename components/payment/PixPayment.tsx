@@ -29,14 +29,13 @@ export function PixPayment({ paymentId: _paymentId, orderId, qrCode, qrCodeBase6
   const [expiration, setExpiration] = useState(dateOfExpiration);
   const [copied, setCopied] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  void paymentId;
   const [now, setNow] = useState<number | null>(null);
 
   // Sincroniza os dados recebidos pelo servidor com o estado visual do pagamento.
   useEffect(() => {
     // Sincronização intencional quando a página recebe um novo PIX.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus(initialStatus);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpiration(dateOfExpiration);
   }, [initialStatus, dateOfExpiration]);
 

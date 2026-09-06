@@ -38,12 +38,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data.user);
     } catch { setUser(null); }
     finally { setLoading(false); }
-  };
+  }, []);
 
   // Inicialização do contexto a partir do estado externo de autenticação.
   useEffect(() => {
     // A função atualiza o estado somente após a resposta assíncrona da API.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshUser();
   }, [refreshUser]);
 

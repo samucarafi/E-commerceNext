@@ -21,11 +21,8 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return;
     // Sincronização intencional do formulário com o usuário autenticado.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(user.name);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPhone(user.phone ?? "");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAddress(user.addresses?.[0] ?? emptyAddress);
   }, [user]);
 

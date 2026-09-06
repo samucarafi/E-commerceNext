@@ -58,10 +58,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const getTotalWeight = () => cartItems.reduce((total, item) => total + (item.weight || 0.5) * item.quantity, 0);
 
   // Estas funções usam o estado atual do carrinho; o memo acompanha cartItems.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const value = useMemo(() => ({
     cartItems, isCartOpen, setIsCartOpen, addToCart, removeFromCart, updateQuantity,
     clearCart, getTotalPrice, getTotalItems, getTotalWeight,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [cartItems, isCartOpen]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

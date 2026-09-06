@@ -13,17 +13,14 @@ export default function Cart() {
   const [mounted, setMounted] = useState(false);
 
   // Necessário para manter a animação de saída do drawer.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (isCartOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMounted(true);
+        setMounted(true);
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
       const timer = setTimeout(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setMounted(false);
+            setMounted(false);
       }, 300);
       return () => clearTimeout(timer);
     }
