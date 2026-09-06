@@ -60,8 +60,8 @@ const orderSchema = new Schema(
     },
     deliveryStatus: {
       type: String,
-      enum: ["processing", "sent", "delivered"],
-      default: "processing",
+      enum: ["pending", "processing", "sent", "delivered"],
+      default: "pending",
     },
     affiliate: {
       userId: { type: Schema.Types.ObjectId, ref: "User" },

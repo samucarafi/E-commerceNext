@@ -124,6 +124,7 @@ export async function finalizeApprovedOrder(
 
       order.payment.status = "approved";
       order.payment.mpPaymentId = paymentId;
+      order.deliveryStatus = "processing";
 
       if (order.coupon?.applied && order.coupon?.code) {
         await User.updateOne(
