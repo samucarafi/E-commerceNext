@@ -6,7 +6,13 @@ import { ArrowLeft, MapPin, Save, UserRound } from "lucide-react";
 import { apiRequest, useAuth, type Address } from "@/contexts/AuthContext";
 
 const emptyAddress: Address = {
-  cep: "", street: "", number: "", neighborhood: "", city: "", state: "", complement: "",
+  cep: "",
+  street: "",
+  number: "",
+  neighborhood: "",
+  city: "",
+  state: "",
+  complement: "",
 };
 
 export default function ProfilePage() {
@@ -21,8 +27,12 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return;
     // Sincronização intencional do formulário com o usuário autenticado.
+    // O estado local representa campos editáveis, por isso precisa ser atualizado quando o usuário muda.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setName(user.name);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPhone(user.phone ?? "");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAddress(user.addresses?.[0] ?? emptyAddress);
   }, [user]);
 
@@ -40,21 +50,37 @@ export default function ProfilePage() {
       await refreshUser();
       setMessage("Perfil atualizado com sucesso.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível atualizar o perfil.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível atualizar o perfil.",
+      );
     } finally {
       setSaving(false);
     }
   }
 
-  if (authLoading) return <main className="min-h-screen bg-[#f8f5f2] p-10 text-center">Carregando perfil...</main>;
+  if (authLoading)
+    return (
+      <main className="min-h-screen bg-[#f8f5f2] p-10 text-center">
+        Carregando perfil...
+      </main>
+    );
 
   if (!user) {
     return (
       <main className="min-h-screen bg-[#f8f5f2] px-4 py-10">
         <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 text-center shadow-sm">
           <h1 className="font-serif text-3xl">Acesse sua conta</h1>
-          <p className="mt-2 text-sm text-gray-500">Entre para visualizar e editar seu perfil.</p>
-          <Link href="/login" className="mt-6 inline-flex rounded-xl bg-[#5b2333] px-5 py-3 text-sm font-semibold text-white">Entrar</Link>
+          <p className="mt-2 text-sm text-gray-500">
+            Entre para visualizar e editar seu perfil.
+          </p>
+          <Link
+            href="/login"
+            className="mt-6 inline-flex rounded-xl bg-[#5b2333] px-5 py-3 text-sm font-semibold text-white"
+          >
+            Entrar
+          </Link>
         </div>
       </main>
     );
@@ -66,11 +92,16 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-[#f8f5f2] px-4 py-10 text-[#1c1c1c]">
       <div className="mx-auto max-w-3xl">
-        <Link href="/" className="mb-8 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#5b2333]">
+        <Link
+          href="/"
+          className="mb-8 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#5b2333]"
+        >
           <ArrowLeft size={16} /> Voltar para a loja
         </Link>
         <div className="mb-8">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#9a7b36]">Minha conta</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#9a7b36]">
+            Minha conta
+          </p>
           <h1 className="mt-2 font-serif text-4xl">Meu perfil</h1>
         </div>
 
@@ -78,17 +109,39 @@ export default function ProfilePage() {
           <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
             <div className="mb-6 flex items-center gap-3">
               <UserRound className="text-[#9a7b36]" size={21} />
-              <div><h2 className="font-semibold">Dados pessoais</h2><p className="text-xs text-gray-500">Atualize suas informações de contato.</p></div>
+              <div>
+                <h2 className="font-semibold">Dados pessoais</h2>
+                <p className="text-xs text-gray-500">
+                  Atualize suas informações de contato.
+                </p>
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="sm:col-span-2"><span className="mb-1 block text-sm font-medium">Nome</span>
-                <input value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-[#9a7b36]" minLength={3} required />
+              <label className="sm:col-span-2">
+                <span className="mb-1 block text-sm font-medium">Nome</span>
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-[#9a7b36]"
+                  minLength={3}
+                  required
+                />
               </label>
-              <label><span className="mb-1 block text-sm font-medium">E-mail</span>
-                <input value={user.email} disabled className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-500" />
+              <label>
+                <span className="mb-1 block text-sm font-medium">E-mail</span>
+                <input
+                  value={user.email}
+                  disabled
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-500"
+                />
               </label>
-              <label><span className="mb-1 block text-sm font-medium">Telefone</span>
-                <input value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-[#9a7b36]" />
+              <label>
+                <span className="mb-1 block text-sm font-medium">Telefone</span>
+                <input
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-[#9a7b36]"
+                />
               </label>
             </div>
           </section>
@@ -96,18 +149,35 @@ export default function ProfilePage() {
           <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
             <div className="mb-6 flex items-center gap-3">
               <MapPin className="text-[#9a7b36]" size={21} />
-              <div><h2 className="font-semibold">Endereço principal</h2><p className="text-xs text-gray-500">Usado como referência no checkout.</p></div>
+              <div>
+                <h2 className="font-semibold">Endereço principal</h2>
+                <p className="text-xs text-gray-500">
+                  Usado como referência no checkout.
+                </p>
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[
-                ["cep", "CEP"], ["state", "Estado"], ["street", "Rua"], ["number", "Número"],
-                ["neighborhood", "Bairro"], ["city", "Cidade"], ["complement", "Complemento"],
+                ["cep", "CEP"],
+                ["state", "Estado"],
+                ["street", "Rua"],
+                ["number", "Número"],
+                ["neighborhood", "Bairro"],
+                ["city", "Cidade"],
+                ["complement", "Complemento"],
               ].map(([key, label]) => (
-                <label key={key} className={key === "street" ? "sm:col-span-2" : ""}>
-                  <span className="mb-1 block text-sm font-medium">{label}</span>
+                <label
+                  key={key}
+                  className={key === "street" ? "sm:col-span-2" : ""}
+                >
+                  <span className="mb-1 block text-sm font-medium">
+                    {label}
+                  </span>
                   <input
                     value={address[key as keyof Address] ?? ""}
-                    onChange={(event) => updateAddress(key as keyof Address, event.target.value)}
+                    onChange={(event) =>
+                      updateAddress(key as keyof Address, event.target.value)
+                    }
                     className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-[#9a7b36]"
                   />
                 </label>
@@ -115,9 +185,21 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          {message && <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>}
-          {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#5b2333] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60">
+          {message && (
+            <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {message}
+            </p>
+          )}
+          {error && (
+            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#5b2333] px-6 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          >
             <Save size={17} /> {saving ? "Salvando..." : "Salvar alterações"}
           </button>
         </form>
