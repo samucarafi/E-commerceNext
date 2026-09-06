@@ -3,6 +3,10 @@ import Order from "@/models/Order";
 import User from "@/models/User";
 import Product from "@/models/Product";
 import { getMercadoPagoPayment } from "@/lib/mercadopago";
+import {
+  sendAdminPaymentApprovedEmail,
+  sendPaymentApprovedEmail,
+} from "@/lib/email";
 
 type PaymentStatus =
   | "pending"
@@ -21,7 +25,32 @@ type MercadoPagoPayment = {
 type ApprovedOrder = {
   orderId: string;
   customer: { name: string; email: string };
-  totals: { total?: number };
+  items: Array<{
+    title?: string;
+    quantity?: number;
+    unit_price?: number;
+  }>;
+  totals: {
+    subtotal?: number;
+    discount?: number;
+    shipping?: number;
+    total?: number;
+  };
+  shippingAddress?: {
+    cep?: string;
+    street?: string;
+    number?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    complement?: string;
+  };
+  payment?: {
+    method?: string;
+    status?: string;
+    mpPaymentId?: string;
+  };
+  newlyApproved: boolean;
 };
 
 function mapPaymentStatus(status?: string): PaymentStatus {
@@ -30,6 +59,20 @@ function mapPaymentStatus(status?: string): PaymentStatus {
   if (status === "cancelled") return "cancelled";
   if (status === "expired") return "expired";
   return "pending";
+}
+
+function emailOrder(order: ApprovedOrder) {
+  if (!order.newlyApproved) return;
+
+  Promise.all([
+    sendPaymentApprovedEmail(order),
+    sendAdminPaymentApprovedEmail(order),
+  ]).catch((error) => {
+    console.error(
+      "Pagamento aprovado, mas um ou mais e-mails não foram enviados:",
+      error,
+    );
+  });
 }
 
 export async function finalizeApprovedOrder(
@@ -51,7 +94,11 @@ export async function finalizeApprovedOrder(
         result = {
           orderId: order.orderId,
           customer: order.customer,
+          items: order.items ?? [],
           totals: order.totals,
+          shippingAddress: order.shippingAddress,
+          payment: order.payment,
+          newlyApproved: false,
         };
         return;
       }
@@ -117,10 +164,15 @@ export async function finalizeApprovedOrder(
       result = {
         orderId: order.orderId,
         customer: order.customer,
+        items: order.items ?? [],
         totals: order.totals,
+        shippingAddress: order.shippingAddress,
+        payment: order.payment,
+        newlyApproved: true,
       };
     });
 
+    if (result) emailOrder(result);
     return result;
   } finally {
     await session.endSession();

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-server";
 import { createPendingOrder } from "@/lib/checkout";
-import { sendOrderCreatedEmail } from "@/lib/email";
+import {
+  sendAdminOrderCreatedEmail,
+  sendOrderCreatedEmail,
+} from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,13 +18,12 @@ export async function POST(request: NextRequest) {
     const result = await createPendingOrder(body, String(user._id));
 
     try {
-      await sendOrderCreatedEmail({
-        orderId: result.orderId,
-        customer: result.customer,
-        total: result.total,
-      });
+      await Promise.all([
+        sendOrderCreatedEmail(result),
+        sendAdminOrderCreatedEmail(result),
+      ]);
     } catch (emailError) {
-      console.error("Pedido criado, mas o e-mail não foi enviado:", emailError);
+      console.error("Pedido criado, mas um ou mais e-mails não foram enviados:", emailError);
     }
 
     return NextResponse.json(result, { status: 201 });
