@@ -5,6 +5,7 @@ import AppProviders from "@/components/providers/AppProviders";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Cart from "@/components/layout/Cart";
+import AffiliateTracker from "@/components/affiliate/AffiliateTracker";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -82,6 +83,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={`${playfair.variable} ${inter.variable} antialiased`}>
         <AppProviders>
+          <AffiliateTracker />
           <Header />
 
           {children}

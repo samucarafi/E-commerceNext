@@ -14,14 +14,18 @@ export async function createCheckout(
 }
 
 export async function validateCoupon(code: string, cpf: string) {
-  return apiRequest<{
-    code: string;
-    type: "percentage" | "fixed" | "shipping" | "affiliate";
-    value: number;
-    discount?: number;
-    message?: string;
+  const data = await apiRequest<{
+    coupon: {
+      code: string;
+      type: "percentage" | "fixed" | "shipping" | "affiliate" | "first_purchase";
+      value: number;
+      discount?: number;
+      message?: string;
+    };
   }>("/coupons/validate", {
     method: "POST",
     body: JSON.stringify({ code, cpf }),
   });
+
+  return data.coupon;
 }

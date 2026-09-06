@@ -10,7 +10,7 @@ export type ShippingConfig = {
 
 export type AppliedCoupon = {
   code: string;
-  type: "percentage" | "fixed" | "shipping" | "affiliate";
+  type: "percentage" | "fixed" | "shipping" | "affiliate" | "first_purchase";
   value: number;
   discount: number;
 };

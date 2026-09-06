@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import mongoose from "mongoose";
 import User from "@/models/User";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
@@ -16,12 +17,21 @@ type CheckoutInput = {
 };
 
 type AffiliateResult = {
-  userId: unknown; couponCode: string; discountGiven: number;
+  userId: mongoose.Types.ObjectId; couponCode: string; discountGiven: number;
   commissionPercentage: number; commissionValue: number; status: string;
 };
 
 type CouponMeta = {
   code: string | null; type: string | null; value: number; applied: boolean; cpfHash: string | null;
+};
+
+type AffiliateUser = {
+  _id: mongoose.Types.ObjectId;
+  affiliate?: {
+    couponCode?: string;
+    discountPercentage?: number;
+    commissionPercentage?: number;
+  };
 };
 
 function cleanState(state: string) { return state.trim().toUpperCase(); }
@@ -58,7 +68,7 @@ async function processCoupon(
     return { itemsDiscount: discount, shippingDiscount, finalShipping, affiliate, couponMeta };
   }
 
-  const affiliateUser = await User.findOne({ "affiliate.couponCode": coupon.code });
+  const affiliateUser = await User.findOne({ "affiliate.couponCode": coupon.code }) as unknown as AffiliateUser | null;
   if (!affiliateUser) throw new Error("Cupom inválido.");
   if (affiliateUser._id.equals(userId)) throw new Error("Você não pode usar seu próprio cupom.");
 
@@ -171,4 +181,3 @@ export async function createPendingOrder(input: CheckoutInput, userId: string) {
     },
   };
 }
-

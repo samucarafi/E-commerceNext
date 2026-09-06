@@ -36,6 +36,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <Link className="rounded-xl px-3 py-2 hover:bg-[#f8f5f2]" href="/admin/usuarios">Usuários</Link>
             <Link className="rounded-xl px-3 py-2 hover:bg-[#f8f5f2]" href="/admin/pedidos">Pedidos</Link>
             <Link className="rounded-xl px-3 py-2 hover:bg-[#f8f5f2]" href="/admin/frete">Frete</Link>
+            <Link className="rounded-xl px-3 py-2 hover:bg-[#f8f5f2]" href="/admin/afiliados">Afiliados e cupons</Link>
           </nav>
         </aside>
 

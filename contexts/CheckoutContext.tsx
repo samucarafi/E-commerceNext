@@ -33,7 +33,6 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
 
-  // Preenche o endereço salvo apenas quando o checkout ainda está vazio.
   useEffect(() => {
     if (user?.addresses?.[0] && !address.cep) {
       queueMicrotask(() => setAddress(user.addresses![0]));
@@ -69,7 +68,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   const getDiscount = () => {
     if (!coupon) return 0;
     const subtotal = getTotalPrice();
-    if (coupon.type === "percentage") return Number(((subtotal * coupon.value) / 100).toFixed(2));
+    if (coupon.type === "percentage" || coupon.type === "first_purchase") return Number(((subtotal * coupon.value) / 100).toFixed(2));
     if (coupon.type === "fixed") return Math.min(coupon.value, subtotal);
     if (coupon.type === "shipping") return Math.min(coupon.value, shipping);
     return coupon.discount;
@@ -98,7 +97,6 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     } finally { setCheckoutLoading(false); }
   };
 
-  // As funções abaixo dependem do estado do checkout; o memo acompanha esse estado.
   const value = useMemo(() => ({
     address, cpf, shipping, shippingLoading, shippingConfig, coupon, couponLoading, couponError,
     checkoutLoading, checkoutError, setAddress, setCpf, lookupCep, calculateCurrentShipping,

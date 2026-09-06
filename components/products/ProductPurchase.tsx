@@ -4,6 +4,7 @@ import { Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import type { Product } from "@/types/product";
 import { useCart } from "@/contexts/CartContext";
+import AffiliateShareButton from "@/components/products/AffiliateShareButton";
 
 export default function ProductPurchase({ product }: { product: Product }) {
   const { addToCart, setIsCartOpen } = useCart();
@@ -77,6 +78,8 @@ export default function ProductPurchase({ product }: { product: Product }) {
       <p className="mt-3 text-xs text-gray-400">
         A quantidade máxima acompanha o estoque disponível.
       </p>
+
+      <AffiliateShareButton slug={product.slug} name={product.name} />
     </div>
   );
 }

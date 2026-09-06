@@ -64,6 +64,11 @@ const orderSchema = new Schema(
       mpPreferenceId: String,
       dateOfExpiration: Date,
     },
+    platformCommission: {
+      percentage: { type: Number, default: 0 },
+      value: { type: Number, default: 0 },
+      status: { type: String, enum: ["pending", "approved", "paid"], default: "pending" },
+    },
     deliveryStatus: {
       type: String,
       enum: ["pending", "processing", "sent", "delivered"],

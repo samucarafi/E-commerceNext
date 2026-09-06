@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Order from "@/models/Order";
 import User from "@/models/User";
 import Product from "@/models/Product";
+import Coupon from "@/models/Coupon";
 import { getMercadoPagoPayment } from "@/lib/mercadopago";
 import {
   sendAdminPaymentApprovedEmail,
@@ -142,6 +143,19 @@ export async function finalizeApprovedOrder(
           },
           { session },
         );
+
+        await Coupon.updateOne(
+          {
+            code: order.coupon.code,
+            $or: [
+              { usageLimit: null },
+              { usageLimit: { $exists: false } },
+              { $expr: { $lt: ["$usageCount", "$usageLimit"] } },
+            ],
+          },
+          { $inc: { usageCount: 1 } },
+          { session },
+        );
       }
 
       if (order.affiliate?.userId && order.affiliate?.commissionValue) {
@@ -150,14 +164,17 @@ export async function finalizeApprovedOrder(
           {
             $inc: {
               "affiliate.totalEarned": order.affiliate.commissionValue,
-              "affiliate.pendingBalance":
-                order.affiliate.commissionValue,
+              "affiliate.pendingBalance": order.affiliate.commissionValue,
             },
           },
           { session },
         );
 
         order.affiliate.status = "approved";
+      }
+
+      if (order.platformCommission?.value) {
+        order.platformCommission.status = "approved";
       }
 
       await order.save({ session });
