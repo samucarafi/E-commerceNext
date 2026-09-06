@@ -5,7 +5,9 @@ import User from "@/models/User";
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("JWT_SECRET não configurado.");
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET deve ter pelo menos 32 caracteres.");
+  }
   return secret;
 }
 
@@ -18,15 +20,18 @@ export async function getAuthenticatedUser() {
   if (!token) return null;
 
   try {
-    const payload = jwt.verify(token, getJwtSecret()) as TokenPayload;
+    const payload = jwt.verify(token, getJwtSecret(), {
+      algorithms: ["HS256"],
+    }) as TokenPayload;
+
     const userId = payload.id ?? payload._id;
-    if (!userId) return null;
+    if (!userId || typeof userId !== "string") return null;
 
     await connectMongoDB();
 
-    // Nunca carregamos senha ou CPF criptografado no contexto de autenticação.
+    // O contexto de autenticação nunca carrega senha, CPF ou outros segredos.
     return User.findById(userId).select(
-      "name email role verified phone addresses cpfHash",
+      "name email role verified phone addresses",
     );
   } catch {
     return null;
@@ -34,7 +39,10 @@ export async function getAuthenticatedUser() {
 }
 
 export function signUserToken(userId: string) {
-  return jwt.sign({ id: userId }, getJwtSecret(), { expiresIn: "7d" });
+  return jwt.sign({ id: userId }, getJwtSecret(), {
+    expiresIn: "7d",
+    algorithm: "HS256",
+  });
 }
 
 export function sanitizeUser(user: {

@@ -5,25 +5,44 @@ import User from "@/models/User";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const name = String(body.name ?? "").trim();
-    const email = String(body.email ?? "").trim().toLowerCase();
-    const password = String(body.password ?? "");
+    const body = await request.json().catch(() => null);
 
-    if (name.length < 3) {
+    if (!body || typeof body !== "object") {
       return NextResponse.json(
-        { error: "O nome deve ter pelo menos 3 caracteres." },
+        { error: "Dados inválidos." },
         { status: 400 },
       );
     }
 
-    if (!email || !email.includes("@")) {
-      return NextResponse.json({ error: "E-mail inválido." }, { status: 400 });
+    const source = body as Record<string, unknown>;
+    const name = typeof source.name === "string" ? source.name.trim() : "";
+    const email =
+      typeof source.email === "string"
+        ? source.email.trim().toLowerCase()
+        : "";
+    const password =
+      typeof source.password === "string" ? source.password : "";
+
+    if (name.length < 3 || name.length > 100) {
+      return NextResponse.json(
+        { error: "O nome deve ter entre 3 e 100 caracteres." },
+        { status: 400 },
+      );
     }
 
-    if (password.length < 6) {
+    if (
+      email.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
       return NextResponse.json(
-        { error: "A senha deve ter pelo menos 6 caracteres." },
+        { error: "E-mail inválido." },
+        { status: 400 },
+      );
+    }
+
+    if (password.length < 6 || password.length > 128) {
+      return NextResponse.json(
+        { error: "A senha deve ter entre 6 e 128 caracteres." },
         { status: 400 },
       );
     }
