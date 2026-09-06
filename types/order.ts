@@ -1,4 +1,10 @@
-export type OrderStatus = "pending" | "approved" | "rejected";
+export type OrderStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "cancelled"
+  | "expired";
+
 export type DeliveryStatus = "processing" | "sent" | "delivered";
 
 export type OrderItem = {

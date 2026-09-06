@@ -26,6 +26,7 @@ const userSchema = new Schema(
     password: { type: String, required: true },
     role: { type: String, default: "user", enum: ["user", "admin"] },
     verified: { type: Boolean, default: false },
+    lastVerificationEmail: { type: Date },
     phone: { type: String, default: "" },
     cpfEncrypted: { type: String, default: "" },
     cpfHash: { type: String, default: "" },
@@ -40,7 +41,12 @@ const userSchema = new Schema(
       default: [],
     },
     affiliate: {
-      couponCode: { type: String, default: "" },
+      couponCode: {
+        type: String,
+        default: undefined,
+        unique: true,
+        sparse: true,
+      },
       discountPercentage: { type: Number, default: 5 },
       commissionPercentage: { type: Number, default: 5 },
       totalEarned: { type: Number, default: 0 },

@@ -114,7 +114,8 @@ export async function createPendingOrder(input: CheckoutInput, userId: string) {
       shipping: Number(couponResult.finalShipping.toFixed(2)), total,
     },
     shippingAddress: { ...address, state },
-    payment: { method: "mercadopago", status: "pending" }, deliveryStatus: "processing",
+    payment: { method: "mercadopago", status: "pending" },
+    deliveryStatus: "processing",
   });
 
   if (!user.cpfHash) user.cpfHash = hashCpf(cpf);
@@ -122,5 +123,15 @@ export async function createPendingOrder(input: CheckoutInput, userId: string) {
   if (!alreadySavedAddress) user.addresses.push({ ...address, state, complement: address.complement || "" });
   await user.save();
 
-  return { orderId, totals: { subtotal: itemsTotal, discount: safeItemsDiscount, shipping: Number(couponResult.finalShipping.toFixed(2)), total } };
+  return {
+    orderId,
+    customer: { name: input.customer.name.trim(), email: input.customer.email.trim().toLowerCase() },
+    total,
+    totals: {
+      subtotal: itemsTotal,
+      discount: safeItemsDiscount,
+      shipping: Number(couponResult.finalShipping.toFixed(2)),
+      total,
+    },
+  };
 }

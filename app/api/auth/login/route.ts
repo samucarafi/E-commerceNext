@@ -30,11 +30,20 @@ export async function POST(request: Request) {
     await connectMongoDB();
     const user = await User.findOne({ email });
 
-    // Mensagem única evita revelar se o e-mail existe.
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return NextResponse.json(
         { error: "E-mail ou senha inválidos." },
         { status: 401 },
+      );
+    }
+
+    if (user.verified === false) {
+      return NextResponse.json(
+        {
+          error: "Verifique seu e-mail antes de acessar sua conta.",
+          code: "EMAIL_NOT_VERIFIED",
+        },
+        { status: 403 },
       );
     }
 
@@ -43,7 +52,6 @@ export async function POST(request: Request) {
       user: sanitizeUser(user),
     });
 
-    // O JWT não é mais enviado ao JavaScript.
     setAuthCookie(response, token);
     return response;
   } catch (error) {

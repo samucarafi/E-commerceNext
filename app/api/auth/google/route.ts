@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import { sanitizeUser, signUserToken } from "@/lib/auth-server";
+import { generateUniqueAffiliateCoupon } from "@/lib/affiliate";
 
 type GoogleUserInfo = {
   email?: string;
@@ -74,13 +75,33 @@ export async function POST(request: NextRequest) {
         10,
       );
 
+      const couponCode = await generateUniqueAffiliateCoupon(
+        googleUser.name || email.split("@")[0],
+      );
+
       user = await User.create({
         name: googleUser.name || email.split("@")[0],
         email,
         password: unusablePassword,
         role: "user",
         verified: true,
+        affiliate: {
+          couponCode,
+          discountPercentage: 5,
+          commissionPercentage: 5,
+        },
       });
+    } else if (!user.affiliate?.couponCode) {
+      user.affiliate = {
+        couponCode: await generateUniqueAffiliateCoupon(user.name),
+        discountPercentage: Number(user.affiliate?.discountPercentage ?? 5),
+        commissionPercentage: Number(user.affiliate?.commissionPercentage ?? 5),
+        totalEarned: Number(user.affiliate?.totalEarned ?? 0),
+        pendingBalance: Number(user.affiliate?.pendingBalance ?? 0),
+        totalPaid: Number(user.affiliate?.totalPaid ?? 0),
+      };
+      user.verified = true;
+      await user.save();
     }
 
     const token = signUserToken(String(user._id));

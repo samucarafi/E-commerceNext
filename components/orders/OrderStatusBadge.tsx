@@ -4,6 +4,8 @@ const paymentLabels: Record<OrderStatus, string> = {
   pending: "Pagamento pendente",
   approved: "Pagamento aprovado",
   rejected: "Pagamento recusado",
+  cancelled: "Pagamento cancelado",
+  expired: "PIX expirado",
 };
 
 const deliveryLabels: Record<DeliveryStatus, string> = {
@@ -26,7 +28,8 @@ export function OrderStatusBadge({
 
   const approved =
     status === "approved" || status === "delivered";
-  const rejected = status === "rejected";
+  const rejected =
+    status === "rejected" || status === "cancelled" || status === "expired";
 
   return (
     <span

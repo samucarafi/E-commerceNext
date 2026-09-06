@@ -2,16 +2,16 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import User from "@/models/User";
+import { generateUniqueAffiliateCoupon } from "@/lib/affiliate";
+import { sendVerificationEmail } from "@/lib/email";
+import { signEmailVerificationToken } from "@/lib/verification";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
 
     if (!body || typeof body !== "object") {
-      return NextResponse.json(
-        { error: "Dados inválidos." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
     }
 
     const source = body as Record<string, unknown>;
@@ -34,10 +34,7 @@ export async function POST(request: Request) {
       email.length > 254 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     ) {
-      return NextResponse.json(
-        { error: "E-mail inválido." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "E-mail inválido." }, { status: 400 });
     }
 
     if (password.length < 6 || password.length > 128) {
@@ -58,15 +55,34 @@ export async function POST(request: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
+    const couponCode = await generateUniqueAffiliateCoupon(name);
 
-    await User.create({
+    const user = await User.create({
       name,
       email,
       password: hashedPassword,
+      role: "user",
+      verified: false,
+      affiliate: {
+        couponCode,
+        discountPercentage: 5,
+        commissionPercentage: 5,
+      },
     });
 
+    const verificationToken = signEmailVerificationToken(String(user._id));
+
+    try {
+      await sendVerificationEmail(email, verificationToken);
+    } catch (emailError) {
+      console.error("Falha ao enviar e-mail de verificação:", emailError);
+    }
+
     return NextResponse.json(
-      { message: "Conta criada com sucesso." },
+      {
+        message:
+          "Conta criada. Verifique seu e-mail para ativar sua conta.",
+      },
       { status: 201 },
     );
   } catch (error) {

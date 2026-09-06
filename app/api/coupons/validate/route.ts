@@ -20,10 +20,7 @@ export async function POST(request: NextRequest) {
     const user = await getAuthenticatedUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: "Não autenticado." },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
     const { code, cpf } = await request.json();
@@ -76,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     const affiliateUser = (await User.findOne({
       "affiliate.couponCode": couponCode,
-    }).lean()) as AffiliateUser | null;
+    }).lean()) as unknown as AffiliateUser | null;
 
     if (!affiliateUser) {
       return NextResponse.json(
