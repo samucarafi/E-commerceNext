@@ -3,45 +3,27 @@ import mongoose, { Schema } from "mongoose";
 const orderSchema = new Schema(
   {
     orderId: { type: String, unique: true, required: true },
-
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     customer: {
       name: { type: String, required: true },
       email: { type: String, required: true },
     },
-
     items: [
       {
         productId: { type: Schema.Types.ObjectId, ref: "Product" },
         title: String,
         quantity: Number,
         unit_price: Number,
-        type: {
-          type: String,
-          enum: ["product", "discount", "shipping"],
-          default: "product",
-        },
+        type: { type: String, enum: ["product", "discount", "shipping"], default: "product" },
       },
     ],
-
     coupon: {
       code: { type: String, default: null },
-      type: {
-        type: String,
-        enum: ["percentage", "fixed", "shipping", "affiliate", "first_purchase", null],
-        default: null,
-      },
+      type: { type: String, enum: ["percentage", "fixed", "shipping", "affiliate", "first_purchase", null], default: null },
       value: { type: Number, default: 0 },
       applied: { type: Boolean, default: false },
       cpfHash: { type: String, default: null },
     },
-
     totals: {
       items: Number,
       subtotal: Number,
@@ -51,7 +33,6 @@ const orderSchema = new Schema(
       shipping: Number,
       total: Number,
     },
-
     shippingAddress: {
       cep: String,
       street: String,
@@ -61,12 +42,11 @@ const orderSchema = new Schema(
       state: String,
       complement: String,
     },
-
     payment: {
       method: { type: String, default: "mercadopago" },
       status: {
         type: String,
-        enum: ["pending", "approved", "rejected"],
+        enum: ["pending", "approved", "rejected", "cancelled", "expired"],
         default: "pending",
       },
       pix: {
@@ -76,31 +56,24 @@ const orderSchema = new Schema(
       },
       mpPaymentId: String,
       mpPreferenceId: String,
+      dateOfExpiration: Date,
     },
-
     deliveryStatus: {
       type: String,
       enum: ["processing", "sent", "delivered"],
       default: "processing",
     },
-
     affiliate: {
       userId: { type: Schema.Types.ObjectId, ref: "User" },
       couponCode: String,
       discountGiven: Number,
       commissionPercentage: Number,
       commissionValue: Number,
-      status: {
-        type: String,
-        enum: ["pending", "approved", "paid"],
-        default: "pending",
-      },
+      status: { type: String, enum: ["pending", "approved", "paid"], default: "pending" },
     },
   },
   { timestamps: true },
 );
 
-const Order =
-  mongoose.models.Order || mongoose.model("Order", orderSchema);
-
+const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
 export default Order;

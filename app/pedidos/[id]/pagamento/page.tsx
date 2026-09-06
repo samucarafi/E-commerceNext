@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
 import { PixPayment } from "@/components/payment/PixPayment";
 import type { PaymentStatus } from "@/types/payment";
@@ -20,15 +19,28 @@ type OrderPayment = {
 };
 
 export default function PaymentPage() {
-  const params = useParams<{ id: string }>();
   const [order, setOrder] = useState<OrderPayment | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function load() {
       try {
-        const response = await fetch(`/api/orders/${params.id}`, {
+        // Evita useParams, que está apresentando erro de runtime
+        // no bundle atual com Turbopack.
+        const segments = window.location.pathname.split("/").filter(Boolean);
+        const pedidosIndex = segments.indexOf("pedidos");
+        const id =
+          pedidosIndex >= 0 && segments[pedidosIndex + 1]
+            ? segments[pedidosIndex + 1]
+            : null;
+
+        if (!id) {
+          throw new Error("Pedido inválido.");
+        }
+
+        const response = await fetch(`/api/orders/${id}`, {
           cache: "no-store",
+          credentials: "include",
         });
 
         const data = await response.json();
@@ -37,28 +49,48 @@ export default function PaymentPage() {
           throw new Error(data?.error || "Pedido não encontrado.");
         }
 
-        setOrder(data);
+        // A API retorna { order }, não o pedido diretamente.
+        setOrder(data.order);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao carregar pedido.");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Erro ao carregar pagamento.",
+        );
       }
     }
 
-    if (params.id) load();
-  }, [params.id]);
+    load();
+  }, []);
 
   if (error) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-16">
-        <h1 className="font-serif text-2xl">Não foi possível carregar o pagamento</h1>
+        <h1 className="font-serif text-2xl">
+          Não foi possível carregar o pagamento
+        </h1>
         <p className="mt-2 text-black/60">{error}</p>
-        <Link href="/produtos" className="mt-6 inline-block underline">
-          Voltar para a loja
-        </Link>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/orders"
+            className="rounded-xl bg-[#1c1c1c] px-5 py-3 text-sm font-medium text-white"
+          >
+            Meus pedidos
+          </Link>
+
+          <Link
+            href="/produtos"
+            className="rounded-xl border border-black/10 px-5 py-3 text-sm"
+          >
+            Voltar para a loja
+          </Link>
+        </div>
       </main>
     );
   }
 
-  if (!order?.payment?.mpPaymentId) {
+  if (!order) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-16 text-center">
         <p className="text-black/60">Carregando pagamento...</p>
@@ -66,8 +98,27 @@ export default function PaymentPage() {
     );
   }
 
+  if (!order.payment?.mpPaymentId) {
+    return (
+      <main className="mx-auto max-w-3xl px-6 py-16 text-center">
+        <h1 className="font-serif text-2xl">
+          Pagamento PIX ainda não disponível
+        </h1>
+        <p className="mt-2 text-sm text-black/60">
+          Este pedido ainda não possui um pagamento PIX associado.
+        </p>
+        <Link
+          href={`/orders/${order.orderId}`}
+          className="mt-6 inline-flex rounded-xl bg-[#1c1c1c] px-5 py-3 text-sm font-medium text-white"
+        >
+          Ver pedido
+        </Link>
+      </main>
+    );
+  }
+
   return (
-    <main className="px-6 py-12">
+    <main className="min-h-screen bg-[#f8f5f2] px-4 py-10">
       <PixPayment
         paymentId={String(order.payment.mpPaymentId)}
         qrCode={order.payment.pix?.qr_code}
