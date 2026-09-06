@@ -5,16 +5,10 @@ import type { Product } from "@/types/product";
 
 export type CartItem = Product & { quantity: number };
 type CartContextValue = {
-  cartItems: CartItem[];
-  isCartOpen: boolean;
-  setIsCartOpen: (open: boolean) => void;
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
-  getTotalPrice: () => number;
-  getTotalItems: () => number;
-  getTotalWeight: () => number;
+  cartItems: CartItem[]; isCartOpen: boolean; setIsCartOpen: (open: boolean) => void;
+  addToCart: (product: Product, quantity?: number) => void; removeFromCart: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void; clearCart: () => void;
+  getTotalPrice: () => number; getTotalItems: () => number; getTotalWeight: () => number;
 };
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 const STORAGE_KEY = "royal-parfums-cart";
@@ -24,16 +18,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
-  // localStorage só existe no cliente; esta é a hidratação inicial do carrinho.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setCartItems(JSON.parse(saved));
+      if (saved) {
+        const parsed = JSON.parse(saved) as CartItem[];
+        queueMicrotask(() => setCartItems(parsed));
+      }
     } catch {
-      setCartItems([]);
-    } finally {
-      setHydrated(true);
+      queueMicrotask(() => setCartItems([]));
+    }
+    finally {
+      queueMicrotask(() => setHydrated(true));
     }
   }, []);
 
@@ -46,76 +42,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (stock === 0) return;
     setCartItems((current) => {
       const existing = current.find((item) => item._id === product._id);
-      if (!existing)
-        return [
-          ...current,
-          {
-            ...product,
-            quantity: Math.min(Math.max(1, quantity), stock),
-            weight: product.weight || 0.5,
-          },
-        ];
-      return current.map((item) =>
-        item._id === product._id
-          ? {
-              ...item,
-              quantity: Math.min(item.quantity + Math.max(1, quantity), stock),
-            }
-          : item,
-      );
+      if (!existing) return [...current, { ...product, quantity: Math.min(Math.max(1, quantity), stock), weight: product.weight || 0.5 }];
+      return current.map((item) => item._id === product._id ? { ...item, quantity: Math.min(item.quantity + Math.max(1, quantity), stock) } : item);
     });
   };
 
-  const removeFromCart = (productId: string) =>
-    setCartItems((current) => current.filter((item) => item._id !== productId));
+  const removeFromCart = (productId: string) => setCartItems((current) => current.filter((item) => item._id !== productId));
   const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-    setCartItems((current) =>
-      current.map((item) =>
-        item._id === productId
-          ? {
-              ...item,
-              quantity: Math.min(quantity, Number(item.stock) || quantity),
-            }
-          : item,
-      ),
-    );
+    if (quantity <= 0) { removeFromCart(productId); return; }
+    setCartItems((current) => current.map((item) => item._id === productId ? { ...item, quantity: Math.min(quantity, Number(item.stock) || quantity) } : item));
   };
   const clearCart = () => setCartItems([]);
-  const getTotalPrice = () =>
-    cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-  const getTotalItems = () =>
-    cartItems.reduce((total, item) => total + item.quantity, 0);
-  const getTotalWeight = () =>
-    cartItems.reduce(
-      (total, item) => total + (item.weight || 0.5) * item.quantity,
-      0,
-    );
+  const getTotalPrice = () => cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  const getTotalItems = () => cartItems.reduce((total, item) => total + item.quantity, 0);
+  const getTotalWeight = () => cartItems.reduce((total, item) => total + (item.weight || 0.5) * item.quantity, 0);
 
-  const value = useMemo(
-    () => ({
-      cartItems,
-      isCartOpen,
-      setIsCartOpen,
-      addToCart,
-      removeFromCart,
-      updateQuantity,
-      clearCart,
-      getTotalPrice,
-      getTotalItems,
-      getTotalWeight,
-    }),
-    [cartItems, isCartOpen],
-  );
+  // Estas funções usam o estado atual do carrinho; o memo acompanha cartItems.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const value = useMemo(() => ({
+    cartItems, isCartOpen, setIsCartOpen, addToCart, removeFromCart, updateQuantity,
+    clearCart, getTotalPrice, getTotalItems, getTotalWeight,
+  }), [cartItems, isCartOpen]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 export function useCart() {
   const context = useContext(CartContext);
-  if (!context)
-    throw new Error("useCart deve ser usado dentro de CartProvider.");
+  if (!context) throw new Error("useCart deve ser usado dentro de CartProvider.");
   return context;
 }
