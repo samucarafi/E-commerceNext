@@ -99,8 +99,14 @@ export default async function ProductPage({ params }: Props) {
     product.description?.trim() ||
     `${product.name} ${product.type.toLowerCase()} da ${product.brand || "Royal Parfums"}.`;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001";
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://royalparfums.com.br";
   const productUrl = `${siteUrl}/produtos/${product.slug}`;
+  const imageUrl = product.image
+    ? product.image.startsWith("http")
+      ? product.image
+      : `${siteUrl}${product.image.startsWith("/") ? "" : "/"}${product.image}`
+    : `${siteUrl}/images/default-perfume.jpg`;
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -108,13 +114,7 @@ export default async function ProductPage({ params }: Props) {
     name: product.name,
     description,
     sku: product._id,
-    image: [
-      product.image
-        ? product.image.startsWith("http")
-          ? product.image
-          : `${siteUrl}${product.image.startsWith("/") ? "" : "/"}${product.image}`
-        : `${siteUrl}/images/default-perfume.jpg`,
-    ],
+    image: [imageUrl],
     brand: {
       "@type": "Brand",
       name: product.brand || "Royal Parfums",
@@ -124,13 +124,38 @@ export default async function ProductPage({ params }: Props) {
       "@type": "Offer",
       url: productUrl,
       priceCurrency: "BRL",
-      price: product.price,
+      price: Number(product.price).toFixed(2),
       availability:
         product.stock > 0
           ? "https://schema.org/InStock"
           : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
     },
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Início",
+        item: siteUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Fragrâncias",
+        item: `${siteUrl}/produtos`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: product.name,
+        item: productUrl,
+      },
+    ],
   };
 
   return (
@@ -258,7 +283,10 @@ export default async function ProductPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+          __html: JSON.stringify([structuredData, breadcrumbSchema]).replace(
+            /</g,
+            "\u003c",
+          ),
         }}
       />
     </main>

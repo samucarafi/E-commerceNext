@@ -16,10 +16,11 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://royalparfums.com.br";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001",
-  ),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Royal Parfums | Alta Perfumaria",
     template: "%s | Royal Parfums",
@@ -27,13 +28,50 @@ export const metadata: Metadata = {
   description:
     "Descubra fragrâncias selecionadas na Royal Parfums. Perfumes e decantes para encontrar sua assinatura.",
   applicationName: "Royal Parfums",
+  keywords: [
+    "Royal Parfums",
+    "perfumes",
+    "perfumes importados",
+    "decantes",
+    "fragrâncias",
+    "perfumaria",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
     type: "website",
+    locale: "pt_BR",
     siteName: "Royal Parfums",
     title: "Royal Parfums | Alta Perfumaria",
     description:
       "Perfumes e decantes selecionados para encontrar sua assinatura.",
   },
+};
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Royal Parfums",
+  url: siteUrl,
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Royal Parfums",
+  url: siteUrl,
 };
 
 export default function RootLayout({
@@ -51,6 +89,16 @@ export default function RootLayout({
 
           <Cart />
         </AppProviders>
+
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify([organizationSchema, websiteSchema]).replace(
+              /</g,
+              "\u003c",
+            ),
+          }}
+        />
       </body>
     </html>
   );

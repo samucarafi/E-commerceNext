@@ -3,10 +3,24 @@ import { getProducts } from "@/lib/products";
 import HeroSection from "@/components/home/HeroSection";
 import ProductShowcase from "@/components/home/ProductShowcase";
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://royalparfums.com.br";
+
 export const metadata: Metadata = {
   title: "Royal Parfums | Perfumaria de Luxo",
   description:
     "Perfumes importados, decantes e fragrâncias selecionadas na Royal Parfums.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    title: "Royal Parfums | Perfumaria de Luxo",
+    description:
+      "Perfumes importados, decantes e fragrâncias selecionadas na Royal Parfums.",
+    url: siteUrl,
+  },
 };
 
 export const revalidate = 60;

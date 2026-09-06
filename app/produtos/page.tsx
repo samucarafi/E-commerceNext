@@ -10,6 +10,17 @@ export const metadata: Metadata = {
   title: "Perfumes e Fragrâncias",
   description:
     "Explore o catálogo de perfumes, decantes e fragrâncias da Royal Parfums.",
+  alternates: {
+    canonical: "/produtos",
+  },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    title: "Perfumes e Fragrâncias | Royal Parfums",
+    description:
+      "Explore o catálogo de perfumes, decantes e fragrâncias da Royal Parfums.",
+    url: "/produtos",
+  },
 };
 
 export const revalidate = 60;
