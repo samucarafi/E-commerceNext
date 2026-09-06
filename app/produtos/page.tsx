@@ -4,6 +4,7 @@ import ProductCard from "@/components/products/ProductCard";
 import CatalogFilters from "@/components/products/CatalogFilters";
 import Pagination from "@/components/products/Pagination";
 import type { Product } from "@/types/product";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Perfumes e Fragrâncias",
@@ -56,7 +57,9 @@ function filterProducts(products: Product[], params: SearchParams) {
 
   switch (params.sort) {
     case "az":
-      result = [...result].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      result = [...result].sort((a, b) =>
+        a.name.localeCompare(b.name, "pt-BR"),
+      );
       break;
     case "price-asc":
       result = [...result].sort((a, b) => Number(a.price) - Number(b.price));
@@ -117,7 +120,9 @@ export default async function ProdutosPage({
           </h1>
           <p className="mt-2 text-sm text-gray-500">
             {filteredProducts.length}{" "}
-            {filteredProducts.length === 1 ? "produto encontrado" : "produtos encontrados"}
+            {filteredProducts.length === 1
+              ? "produto encontrado"
+              : "produtos encontrados"}
           </p>
         </header>
 
@@ -174,20 +179,16 @@ export default async function ProdutosPage({
                 <p className="mt-2 text-sm text-gray-500">
                   Tente remover alguns filtros ou pesquisar por outro termo.
                 </p>
-                <a
+                <Link
                   href="/produtos"
                   className="mt-6 inline-block rounded-full bg-[#5b2333] px-6 py-3 text-sm font-semibold text-white"
                 >
                   Limpar filtros
-                </a>
+                </Link>
               </div>
             )}
 
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              query={query}
-            />
+            <Pagination page={page} totalPages={totalPages} query={query} />
           </section>
         </div>
       </div>

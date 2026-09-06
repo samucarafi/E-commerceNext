@@ -1,6 +1,7 @@
 "use client";
 
 import { Search, SlidersHorizontal } from "lucide-react";
+import Link from "next/link";
 
 type Props = {
   categories: string[];
@@ -125,12 +126,12 @@ export default function CatalogFilters({ categories, initial }: Props) {
         Aplicar filtros
       </button>
 
-      <a
+      <Link
         href="/produtos"
         className="mt-3 block text-center text-xs text-[#8d6b50] underline-offset-4 hover:underline"
       >
         Limpar filtros
-      </a>
+      </Link>
     </form>
   );
 }
