@@ -71,6 +71,7 @@ const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "Royal Parfums",
+  alternateName: "Royal Parfums Perfumaria",
   url: siteUrl,
 };
 
