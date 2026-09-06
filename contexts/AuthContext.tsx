@@ -12,7 +12,6 @@ export type User = {
   cpf?: string;
   addresses?: Address[];
 };
-
 export type Address = {
   cep: string;
   street: string;
@@ -22,19 +21,16 @@ export type Address = {
   state: string;
   complement?: string;
 };
-
-type AuthResult = {
-  success: boolean;
-  error?: string;
-  message?: string;
-};
-
+type AuthResult = { success: boolean; error?: string; message?: string };
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  login: (credentials: { email: string; password: string }) => Promise<AuthResult>;
+  login: (credentials: {
+    email: string;
+    password: string;
+  }) => Promise<AuthResult>;
   loginWithGoogle: (accessToken: string) => Promise<AuthResult>;
   register: (data: Record<string, unknown>) => Promise<AuthResult>;
   logout: () => Promise<void>;
@@ -51,20 +47,13 @@ export async function apiRequest<T>(
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
+    headers: { "Content-Type": "application/json", ...(options.headers ?? {}) },
   });
-
   const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
+  if (!response.ok)
     throw new Error(
       data?.error || data?.message || "Não foi possível concluir a operação.",
     );
-  }
-
   return data;
 }
 
@@ -83,6 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Inicialização do contexto a partir do estado externo de autenticação.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     refreshUser();
   }, []);
@@ -93,7 +84,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         method: "POST",
         body: JSON.stringify(credentials),
       });
-
       setUser(data.user);
       return { success: true };
     } catch (error) {
@@ -106,24 +96,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithGoogle = async (accessToken: string) => {
     try {
-      if (!accessToken) {
+      if (!accessToken)
         return { success: false, error: "Token do Google não informado." };
-      }
-
       const data = await apiRequest<{ user: User }>("/auth/google", {
         method: "POST",
         body: JSON.stringify({ accessToken }),
       });
-
       setUser(data.user);
       return { success: true };
     } catch (error) {
       return {
         success: false,
         error:
-          error instanceof Error
-            ? error.message
-            : "Erro no login com Google.",
+          error instanceof Error ? error.message : "Erro no login com Google.",
       };
     }
   };
@@ -174,8 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (!context)
     throw new Error("useAuth deve ser usado dentro de AuthProvider.");
-  }
   return context;
 }

@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Clock3, Copy, ExternalLink, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock3,
+  Copy,
+  ExternalLink,
+  XCircle,
+} from "lucide-react";
 import type { PaymentStatus } from "@/types/payment";
 
 type Props = {
@@ -25,7 +31,7 @@ function statusLabel(status: PaymentStatus) {
 }
 
 export function PixPayment({
-  paymentId,
+  paymentId: _paymentId,
   orderId,
   qrCode,
   qrCodeBase64,
@@ -39,59 +45,53 @@ export function PixPayment({
   const [expiration, setExpiration] = useState(dateOfExpiration);
   const [copied, setCopied] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
+  // Sincroniza os dados recebidos pelo servidor com o estado visual do pagamento.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     setStatus(initialStatus);
     setExpiration(dateOfExpiration);
   }, [initialStatus, dateOfExpiration]);
 
   useEffect(() => {
-    if (["approved", "rejected", "cancelled", "expired"].includes(status)) {
-      return;
-    }
+    const clock = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(clock);
+  }, []);
 
+  useEffect(() => {
+    if (["approved", "rejected", "cancelled", "expired"].includes(status))
+      return;
     const timer = window.setInterval(async () => {
       try {
         const response = await fetch(`/api/payment/status/${orderId}`, {
           cache: "no-store",
           credentials: "include",
         });
-
         if (!response.ok) return;
-
         const data = await response.json();
-
         if (data.status) setStatus(data.status);
         if (data.dateOfExpiration) setExpiration(data.dateOfExpiration);
-      } catch {
-        // A próxima consulta tentará novamente.
-      }
+      } catch {}
     }, 5000);
-
     return () => window.clearInterval(timer);
   }, [orderId, status]);
 
   const copyCode = async () => {
     if (!qrCode) return;
-
     await navigator.clipboard.writeText(qrCode);
     setCopied(true);
-
     window.setTimeout(() => setCopied(false), 1800);
   };
 
   const isApproved = status === "approved";
   const isClosed =
-    status === "rejected" ||
-    status === "cancelled" ||
-    status === "expired";
-
+    status === "rejected" || status === "cancelled" || status === "expired";
   const expiresAt = expiration ? new Date(expiration).getTime() : 0;
-  const expiredByClock = expiresAt > 0 && expiresAt <= Date.now();
+  const expiredByClock = expiresAt > 0 && expiresAt <= now;
 
   async function regenerate() {
     setActionLoading(true);
-
     try {
       await onRegenerate();
     } finally {
@@ -101,7 +101,6 @@ export function PixPayment({
 
   async function cancel() {
     setActionLoading(true);
-
     try {
       await onCancel();
     } finally {
@@ -119,13 +118,9 @@ export function PixPayment({
         ) : (
           <Clock3 className="mx-auto mb-3 h-12 w-12" />
         )}
-
         <h1 className="font-serif text-2xl">
-          {expiredByClock && !isApproved
-            ? "PIX expirado"
-            : statusLabel(status)}
+          {expiredByClock && !isApproved ? "PIX expirado" : statusLabel(status)}
         </h1>
-
         {!isApproved && !isClosed && !expiredByClock && (
           <p className="mt-2 text-sm text-black/60">
             Depois de pagar, esta tela consulta automaticamente o status.
@@ -135,6 +130,8 @@ export function PixPayment({
 
       {!isApproved && !isClosed && !expiredByClock && qrCodeBase64 && (
         <div className="mb-6 flex justify-center">
+          {/* QR vindo como data URL não é um domínio externo, por isso a otimização do next/image não agrega aqui. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`data:image/png;base64,${qrCodeBase64}`}
             alt="QR Code para pagamento PIX"
@@ -148,14 +145,12 @@ export function PixPayment({
           <label className="mb-2 block text-sm font-medium">
             PIX Copia e Cola
           </label>
-
           <div className="flex gap-2">
             <textarea
               readOnly
               value={qrCode}
               className="min-h-24 flex-1 resize-none rounded-xl border border-black/10 p-3 text-xs outline-none"
             />
-
             <button
               type="button"
               onClick={copyCode}
@@ -164,7 +159,6 @@ export function PixPayment({
               <Copy className="h-4 w-4" />
             </button>
           </div>
-
           {copied && (
             <p className="mt-2 text-center text-sm text-green-700">
               Código copiado.
@@ -180,8 +174,7 @@ export function PixPayment({
           rel="noreferrer"
           className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-[#1c1c1c] px-4 py-3 text-sm font-medium text-white"
         >
-          Abrir pagamento
-          <ExternalLink className="h-4 w-4" />
+          Abrir pagamento <ExternalLink className="h-4 w-4" />
         </a>
       )}
 

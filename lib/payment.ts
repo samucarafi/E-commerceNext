@@ -5,8 +5,7 @@ import Product from "@/models/Product";
 import { getMercadoPagoPayment } from "@/lib/mercadopago";
 
 type PaymentStatus = "pending" | "approved" | "rejected" | "cancelled" | "expired";
-
-type MercadoPagoPayment = { id: string | number; status?: string; status_detail?: string };
+type MercadoPagoPayment = { id: string | number; status?: string; status_detail?: string; external_reference?: string };
 
 function mapPaymentStatus(status?: string): PaymentStatus {
   if (status === "approved") return "approved";
@@ -21,19 +20,13 @@ export async function finalizeApprovedOrder(orderId: string, paymentId: string) 
   try {
     let result;
     await session.withTransaction(async () => {
-      const order = (await Order.findOne({ orderId }).session(session)) as any;
+      const order = await Order.findOne({ orderId }).session(session);
       if (!order) throw new Error("Pedido não encontrado.");
       if (order.payment?.status === "approved") { result = order; return; }
 
       for (const item of order.items ?? []) {
-        const updated = await Product.updateOne(
-          { _id: item.productId, stock: { $gte: item.quantity } },
-          { $inc: { stock: -item.quantity } },
-          { session },
-        );
-        if (updated.modifiedCount !== 1) {
-          throw new Error(`Estoque insuficiente para o produto ${item.title ?? item.productId}.`);
-        }
+        const updated = await Product.updateOne({ _id: item.productId, stock: { $gte: item.quantity } }, { $inc: { stock: -item.quantity } }, { session });
+        if (updated.modifiedCount !== 1) throw new Error(`Estoque insuficiente para o produto ${item.title ?? item.productId}.`);
       }
 
       order.payment.status = "approved";
@@ -55,40 +48,33 @@ export async function finalizeApprovedOrder(orderId: string, paymentId: string) 
         );
         order.affiliate.status = "approved";
       }
-
       await order.save({ session });
       result = order;
     });
     return result;
-  } finally {
-    await session.endSession();
-  }
+  } finally { await session.endSession(); }
 }
 
 export async function syncOrderPayment(orderId: string, paymentId: string, status: PaymentStatus) {
   if (status === "approved") return finalizeApprovedOrder(orderId, paymentId);
-
-  const order = (await Order.findOneAndUpdate(
+  return Order.findOneAndUpdate(
     { orderId, "payment.status": { $ne: "approved" } },
     { $set: { "payment.status": status, "payment.mpPaymentId": paymentId } },
     { new: true },
-  )) as any;
-  return order;
+  );
 }
 
 export async function refreshOrderPayment(orderId: string) {
-  const order = (await Order.findOne({ orderId }).lean()) as any;
+  const order = await Order.findOne({ orderId }).lean();
   if (!order) throw new Error("Pedido não encontrado.");
   if (order.payment?.status === "approved" && order.payment?.mpPaymentId) return order;
   if (!order.payment?.mpPaymentId) return order;
-
-  const payment = (await getMercadoPagoPayment(order.payment.mpPaymentId)) as MercadoPagoPayment;
-  const status = mapPaymentStatus(payment.status);
-  return syncOrderPayment(orderId, String(payment.id), status);
+  const payment = await getMercadoPagoPayment(order.payment.mpPaymentId) as MercadoPagoPayment;
+  return syncOrderPayment(orderId, String(payment.id), mapPaymentStatus(payment.status));
 }
 
 export async function refreshPaymentById(paymentId: string) {
-  const payment = (await getMercadoPagoPayment(paymentId)) as MercadoPagoPayment & { external_reference?: string };
+  const payment = await getMercadoPagoPayment(paymentId) as MercadoPagoPayment;
   if (!payment.external_reference) throw new Error("Pagamento sem referência externa.");
   return syncOrderPayment(payment.external_reference, String(payment.id), mapPaymentStatus(payment.status));
 }
