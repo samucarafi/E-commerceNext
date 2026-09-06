@@ -3,6 +3,7 @@ export type PaymentStatus =
   | "approved"
   | "rejected"
   | "cancelled"
+  | "expired"
   | "in_process"
   | "unknown";
 
@@ -12,8 +13,10 @@ export type PixPayment = {
   qr_code: string;
   qr_code_base64?: string;
   ticket_url?: string;
+  date_of_expiration?: string;
 };
 
 export type PaymentStatusResponse = {
   status: PaymentStatus;
+  dateOfExpiration?: string;
 };

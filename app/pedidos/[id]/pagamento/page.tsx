@@ -10,6 +10,7 @@ type OrderPayment = {
   payment: {
     mpPaymentId?: string | number;
     status?: PaymentStatus;
+    dateOfExpiration?: string;
     pix?: {
       qr_code?: string;
       qr_code_base64?: string;
@@ -25,8 +26,6 @@ export default function PaymentPage() {
   useEffect(() => {
     async function load() {
       try {
-        // Evita useParams, que está apresentando erro de runtime
-        // no bundle atual com Turbopack.
         const segments = window.location.pathname.split("/").filter(Boolean);
         const pedidosIndex = segments.indexOf("pedidos");
         const id =
@@ -34,9 +33,7 @@ export default function PaymentPage() {
             ? segments[pedidosIndex + 1]
             : null;
 
-        if (!id) {
-          throw new Error("Pedido inválido.");
-        }
+        if (!id) throw new Error("Pedido inválido.");
 
         const response = await fetch(`/api/orders/${id}`, {
           cache: "no-store",
@@ -49,7 +46,6 @@ export default function PaymentPage() {
           throw new Error(data?.error || "Pedido não encontrado.");
         }
 
-        // A API retorna { order }, não o pedido diretamente.
         setOrder(data.order);
       } catch (err) {
         setError(
@@ -62,6 +58,67 @@ export default function PaymentPage() {
 
     load();
   }, []);
+
+  async function regeneratePix() {
+    if (!order) return;
+
+    const response = await fetch("/api/payment/pix", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ orderId: order.orderId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Não foi possível gerar um novo PIX.");
+    }
+
+    setOrder((current) =>
+      current
+        ? {
+            ...current,
+            payment: {
+              ...current.payment,
+              mpPaymentId: data.paymentId,
+              status: data.status,
+              dateOfExpiration: data.dateOfExpiration,
+              pix: data.pix,
+            },
+          }
+        : current,
+    );
+  }
+
+  async function cancelOrder() {
+    if (!order) return;
+
+    const response = await fetch("/api/payment/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ orderId: order.orderId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Não foi possível cancelar o pedido.");
+    }
+
+    setOrder((current) =>
+      current
+        ? {
+            ...current,
+            payment: {
+              ...current.payment,
+              status: data.status,
+            },
+          }
+        : current,
+    );
+  }
 
   if (error) {
     return (
@@ -104,15 +161,18 @@ export default function PaymentPage() {
         <h1 className="font-serif text-2xl">
           Pagamento PIX ainda não disponível
         </h1>
+
         <p className="mt-2 text-sm text-black/60">
           Este pedido ainda não possui um pagamento PIX associado.
         </p>
-        <Link
-          href={`/orders/${order.orderId}`}
+
+        <button
+          type="button"
+          onClick={regeneratePix}
           className="mt-6 inline-flex rounded-xl bg-[#1c1c1c] px-5 py-3 text-sm font-medium text-white"
         >
-          Ver pedido
-        </Link>
+          Gerar PIX
+        </button>
       </main>
     );
   }
@@ -121,10 +181,14 @@ export default function PaymentPage() {
     <main className="min-h-screen bg-[#f8f5f2] px-4 py-10">
       <PixPayment
         paymentId={String(order.payment.mpPaymentId)}
+        orderId={order.orderId}
         qrCode={order.payment.pix?.qr_code}
         qrCodeBase64={order.payment.pix?.qr_code_base64}
         ticketUrl={order.payment.pix?.ticket_url}
         initialStatus={order.payment.status}
+        dateOfExpiration={order.payment.dateOfExpiration}
+        onRegenerate={regeneratePix}
+        onCancel={cancelOrder}
       />
     </main>
   );
