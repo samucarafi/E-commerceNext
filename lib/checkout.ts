@@ -115,7 +115,7 @@ export async function createPendingOrder(input: CheckoutInput, userId: string) {
     },
     shippingAddress: { ...address, state },
     payment: { method: "mercadopago", status: "pending" },
-    deliveryStatus: "processing",
+    deliveryStatus: "pending",
   });
 
   if (!user.cpfHash) user.cpfHash = hashCpf(cpf);
