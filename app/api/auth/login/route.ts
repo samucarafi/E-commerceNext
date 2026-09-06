@@ -17,12 +17,12 @@ function setAuthCookie(response: NextResponse, token: string) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const email = String(body.email ?? "").trim().toLowerCase();
-    const password = String(body.password ?? "");
+    const email = String(body?.email ?? "").trim().toLowerCase();
+    const password = String(body?.password ?? "");
 
-    if (!email || !password) {
+    if (!email || !password || password.length > 128) {
       return NextResponse.json(
-        { error: "E-mail e senha são obrigatórios." },
+        { error: "E-mail ou senha inválidos." },
         { status: 400 },
       );
     }
@@ -30,15 +30,8 @@ export async function POST(request: Request) {
     await connectMongoDB();
     const user = await User.findOne({ email });
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "E-mail ou senha inválidos." },
-        { status: 401 },
-      );
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
+    // Mensagem única evita revelar se o e-mail existe.
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return NextResponse.json(
         { error: "E-mail ou senha inválidos." },
         { status: 401 },
@@ -47,10 +40,10 @@ export async function POST(request: Request) {
 
     const token = signUserToken(String(user._id));
     const response = NextResponse.json({
-      token,
       user: sanitizeUser(user),
     });
 
+    // O JWT não é mais enviado ao JavaScript.
     setAuthCookie(response, token);
     return response;
   } catch (error) {

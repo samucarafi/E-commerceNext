@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { connectMongoDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
@@ -12,19 +12,8 @@ function getJwtSecret(): string {
 type TokenPayload = { id?: string; _id?: string };
 
 export async function getAuthenticatedUser() {
-  const requestHeaders = await headers();
-  const authorization = requestHeaders.get("authorization");
-
-  let token = authorization?.startsWith("Bearer ")
-    ? authorization.slice("Bearer ".length).trim()
-    : null;
-
-  // Server Components/layouts não conseguem ler localStorage.
-  // O cookie HttpOnly permite autenticar navegações como /admin.
-  if (!token) {
-    const cookieStore = await cookies();
-    token = cookieStore.get("token")?.value ?? null;
-  }
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value ?? null;
 
   if (!token) return null;
 
@@ -34,7 +23,11 @@ export async function getAuthenticatedUser() {
     if (!userId) return null;
 
     await connectMongoDB();
-    return User.findById(userId);
+
+    // Nunca carregamos senha ou CPF criptografado no contexto de autenticação.
+    return User.findById(userId).select(
+      "name email role verified phone addresses cpfHash",
+    );
   } catch {
     return null;
   }

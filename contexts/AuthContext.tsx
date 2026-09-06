@@ -48,15 +48,11 @@ export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
-
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers ?? {}),
     },
   });
@@ -81,9 +77,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await apiRequest<{ user: User }>("/auth/profile");
       setUser(data.user);
     } catch {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-      }
       setUser(null);
     } finally {
       setLoading(false);
@@ -96,15 +89,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: { email: string; password: string }) => {
     try {
-      const data = await apiRequest<{ user: User; token: string }>(
-        "/auth/login",
-        {
-          method: "POST",
-          body: JSON.stringify(credentials),
-        },
-      );
+      const data = await apiRequest<{ user: User }>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(credentials),
+      });
 
-      localStorage.setItem("token", data.token);
       setUser(data.user);
       return { success: true };
     } catch (error) {
@@ -121,15 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: "Token do Google não informado." };
       }
 
-      const data = await apiRequest<{ user: User; token: string }>(
-        "/auth/google",
-        {
-          method: "POST",
-          body: JSON.stringify({ accessToken }),
-        },
-      );
+      const data = await apiRequest<{ user: User }>("/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ accessToken }),
+      });
 
-      localStorage.setItem("token", data.token);
       setUser(data.user);
       return { success: true };
     } catch (error) {
@@ -165,7 +150,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credentials: "include",
       });
     } finally {
-      localStorage.removeItem("token");
       setUser(null);
     }
   };

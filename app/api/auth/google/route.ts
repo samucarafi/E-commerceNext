@@ -25,8 +25,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // O frontend envia accessToken. Aceitamos também access_token
-    // para evitar quebra caso algum cliente antigo ainda use esse nome.
     const accessToken =
       typeof body?.accessToken === "string"
         ? body.accessToken.trim()
@@ -34,14 +32,12 @@ export async function POST(request: NextRequest) {
           ? body.access_token.trim()
           : "";
 
-    if (!accessToken) {
+    if (!accessToken || accessToken.length > 4096) {
       return NextResponse.json(
         { error: "Token do Google não informado." },
         { status: 400 },
       );
     }
-
-    await connectMongoDB();
 
     const googleResponse = await fetch(
       "https://www.googleapis.com/oauth2/v3/userinfo",
@@ -67,12 +63,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await connectMongoDB();
+
     const email = googleUser.email.toLowerCase().trim();
     let user = await User.findOne({ email });
 
     if (!user) {
       const unusablePassword = await bcrypt.hash(
-        `${crypto.randomUUID()}-${accessToken}`,
+        `${crypto.randomUUID()}-${crypto.randomUUID()}`,
         10,
       );
 
@@ -87,7 +85,6 @@ export async function POST(request: NextRequest) {
 
     const token = signUserToken(String(user._id));
     const response = NextResponse.json({
-      token,
       user: sanitizeUser(user),
     });
 
@@ -95,14 +92,8 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: unknown) {
     console.error("Erro no login com Google:", error);
-
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Erro ao autenticar com Google.",
-      },
+      { error: "Erro ao autenticar com Google." },
       { status: 500 },
     );
   }

@@ -12,6 +12,13 @@ export function middleware(request: NextRequest) {
     "camera=(), microphone=(), geolocation=()",
   );
 
+  if (process.env.NODE_ENV === "production") {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains",
+    );
+  }
+
   return response;
 }
 

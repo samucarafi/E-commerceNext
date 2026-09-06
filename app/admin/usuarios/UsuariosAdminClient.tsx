@@ -14,21 +14,33 @@ export default function UsuariosAdminClient() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
 
-  async function load() {
-    const response = await fetch("/api/admin/usuarios", { credentials: "include", cache: "no-store" });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) { setError(data.error || "Não foi possível carregar os usuários."); return; }
-    setUsers(data);
-  }
+  useEffect(() => {
+    let active = true;
 
-  useEffect(() => { load(); }, []);
+    async function load() {
+      try {
+        const response = await fetch("/api/admin/usuarios", { credentials: "include", cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!active) return;
+        if (!response.ok) { setError(data.error || "Não foi possível carregar os usuários."); return; }
+        setUsers(data);
+      } catch {
+        if (active) setError("Não foi possível carregar os usuários.");
+      }
+    }
+
+    void load();
+    return () => { active = false; };
+  }, []);
 
   async function remove(user: User) {
     if (!window.confirm(`Excluir "${user.name}"? Esta ação não pode ser desfeita.`)) return;
     const response = await fetch(`/api/admin/usuarios/${user._id}`, { method: "DELETE", credentials: "include" });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) { setError(data.error || "Não foi possível excluir o usuário."); return; }
-    load();
+    const refreshed = await fetch("/api/admin/usuarios", { credentials: "include", cache: "no-store" });
+    const refreshedData = await refreshed.json().catch(() => []);
+    if (refreshed.ok) setUsers(refreshedData);
   }
 
   return (
@@ -58,7 +70,7 @@ export default function UsuariosAdminClient() {
           </tbody>
         </table>{users.length === 0 && <div className="py-16 text-center text-sm text-gray-400">Nenhum usuário encontrado.</div>}</div>
       </div>
-      {showForm && <UserForm user={editing} onSaved={() => { setShowForm(false); setEditing(null); load(); }} onCancel={() => { setShowForm(false); setEditing(null); }} />}
+      {showForm && <UserForm user={editing} onSaved={() => { setShowForm(false); setEditing(null); }} onCancel={() => { setShowForm(false); setEditing(null); }} />}
     </div>
   );
 }

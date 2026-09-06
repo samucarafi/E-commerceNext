@@ -2,42 +2,77 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import { getAuthenticatedUser } from "@/lib/auth-server";
 import Order from "@/models/Order";
-import { createMercadoPagoPixPayment, getMercadoPagoPayment } from "@/lib/mercadopago";
+import {
+  createMercadoPagoPixPayment,
+  getMercadoPagoPayment,
+} from "@/lib/mercadopago";
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser();
-    if (!user) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    if (!user) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
 
-    const body = (await request.json()) as { orderId?: string };
-    if (!body.orderId) return NextResponse.json({ error: "orderId é obrigatório." }, { status: 400 });
+    const body = await request.json().catch(() => null);
+    const orderId =
+      body && typeof body.orderId === "string" ? body.orderId.trim() : "";
+
+    if (!orderId || orderId.length > 100) {
+      return NextResponse.json(
+        { error: "orderId inválido." },
+        { status: 400 },
+      );
+    }
 
     await connectMongoDB();
-    const order = await Order.findOne({ orderId: body.orderId, userId: user._id });
-    if (!order) return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404 });
-    if (order.payment?.status === "approved") {
-      return NextResponse.json({ error: "Este pedido já foi pago." }, { status: 409 });
+
+    // A consulta sempre limita o pedido ao usuário autenticado.
+    const order = await Order.findOne({
+      orderId,
+      userId: user._id,
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { error: "Pedido não encontrado." },
+        { status: 404 },
+      );
     }
-    if (order.payment?.status === "cancelled" && !order.payment?.mpPaymentId) {
-      // Permite reabrir o pagamento apenas criando um novo PIX abaixo.
+
+    if (order.payment?.status === "approved") {
+      return NextResponse.json(
+        { error: "Este pedido já foi pago." },
+        { status: 409 },
+      );
     }
 
     if (order.payment?.mpPaymentId) {
       const current = await getMercadoPagoPayment(order.payment.mpPaymentId);
-      const currentStatus = current.status;
-      const expiration = current.date_of_expiration ? new Date(current.date_of_expiration) : undefined;
-      const isExpiredByDate = expiration ? expiration.getTime() <= Date.now() : false;
+      const expiration = current.date_of_expiration
+        ? new Date(current.date_of_expiration)
+        : undefined;
+      const isExpiredByDate = expiration
+        ? expiration.getTime() <= Date.now()
+        : false;
 
-      if (currentStatus === "approved") {
+      if (current.status === "approved") {
         order.payment.status = "approved";
         await order.save();
-        return NextResponse.json({ error: "Este pedido já foi pago." }, { status: 409 });
+        return NextResponse.json(
+          { error: "Este pedido já foi pago." },
+          { status: 409 },
+        );
       }
 
-      if ((currentStatus === "pending" || currentStatus === "in_process") && !isExpiredByDate) {
+      if (
+        (current.status === "pending" || current.status === "in_process") &&
+        !isExpiredByDate
+      ) {
         order.payment.status = "pending";
         if (expiration) order.payment.dateOfExpiration = expiration;
         await order.save();
+
         return NextResponse.json({
           orderId: order.orderId,
           paymentId: order.payment.mpPaymentId,
@@ -48,12 +83,23 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      if (currentStatus === "rejected" || currentStatus === "cancelled" || isExpiredByDate || currentStatus === "expired") {
-        order.payment.status = isExpiredByDate || currentStatus === "expired" ? "expired" : "cancelled";
+      if (
+        current.status === "rejected" ||
+        current.status === "cancelled" ||
+        isExpiredByDate ||
+        current.status === "expired"
+      ) {
+        order.payment.status =
+          isExpiredByDate || current.status === "expired"
+            ? "expired"
+            : "cancelled";
       }
     }
 
-    const firstName = order.customer.name.trim().split(/\s+/)[0] || "Cliente";
+    // O valor vem do pedido salvo no servidor; nunca do navegador.
+    const firstName =
+      order.customer.name.trim().split(/\s+/)[0] || "Cliente";
+
     const payment = await createMercadoPagoPixPayment({
       orderId: order.orderId,
       amount: Number(order.totals.total),
@@ -61,7 +107,10 @@ export async function POST(request: NextRequest) {
     });
 
     const data = payment.point_of_interaction?.transaction_data;
-    if (!data?.qr_code) throw new Error("Mercado Pago não retornou o QR Code PIX.");
+
+    if (!data?.qr_code) {
+      throw new Error("Mercado Pago não retornou o QR Code PIX.");
+    }
 
     order.payment.method = "pix";
     order.payment.status = "pending";
@@ -74,6 +123,7 @@ export async function POST(request: NextRequest) {
     order.payment.dateOfExpiration = payment.date_of_expiration
       ? new Date(payment.date_of_expiration)
       : undefined;
+
     await order.save();
 
     return NextResponse.json({
@@ -86,6 +136,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("Erro ao criar PIX:", error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Erro ao gerar pagamento PIX." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Não foi possível gerar o pagamento PIX." },
+      { status: 500 },
+    );
   }
 }

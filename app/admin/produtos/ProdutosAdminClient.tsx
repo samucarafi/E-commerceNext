@@ -20,20 +20,33 @@ export default function ProdutosAdminClient() {
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState("");
 
-  async function load() {
-    const r = await fetch("/api/products", { cache: "no-store" });
-    const data = await r.json().catch(() => []);
-    if (!r.ok) setError(data.error || "Erro ao carregar produtos.");
-    else setProducts(data);
-  }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      try {
+        const r = await fetch("/api/products", { cache: "no-store" });
+        const data = await r.json().catch(() => []);
+        if (!active) return;
+        if (!r.ok) setError(data.error || "Erro ao carregar produtos.");
+        else setProducts(data);
+      } catch {
+        if (active) setError("Erro ao carregar produtos.");
+      }
+    }
+
+    void load();
+    return () => { active = false; };
+  }, []);
 
   async function remove(product: Product) {
     if (!window.confirm(`Deseja realmente excluir "${product.name}"?`)) return;
     const r = await fetch(`/api/products/${product._id}`, { method: "DELETE", credentials: "include" });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) { setError(data.error || "Não foi possível excluir."); return; }
-    load();
+    const refreshed = await fetch("/api/products", { cache: "no-store" });
+    const refreshedData = await refreshed.json().catch(() => []);
+    if (refreshed.ok) setProducts(refreshedData);
   }
 
   return <div>
