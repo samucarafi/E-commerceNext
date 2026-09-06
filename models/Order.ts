@@ -33,6 +33,12 @@ const orderSchema = new Schema(
       shipping: Number,
       total: Number,
     },
+    shipping: {
+      carrier: { type: String, enum: ["fixed", "correios", "loggi"], default: "fixed" },
+      service: { type: String, default: "STANDARD" },
+      quoteId: { type: String, default: null },
+      deadline: { type: Number, default: null },
+    },
     shippingAddress: {
       cep: String,
       street: String,

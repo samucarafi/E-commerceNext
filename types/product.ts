@@ -14,5 +14,8 @@ export type Product = {
   isNewProduct: boolean;
   brand: string;
   weight?: number;
+  height?: number;
+  width?: number;
+  length?: number;
   popularity?: number;
 };

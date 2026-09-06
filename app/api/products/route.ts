@@ -53,13 +53,19 @@ export async function POST(request: Request) {
       gender: source.gender ? String(source.gender) : undefined,
       brand: String(source.brand ?? "").trim(),
       weight: source.weight === undefined || source.weight === "" ? undefined : Number(source.weight),
+      height: source.height === undefined || source.height === "" ? undefined : Number(source.height),
+      width: source.width === undefined || source.width === "" ? undefined : Number(source.width),
+      length: source.length === undefined || source.length === "" ? undefined : Number(source.length),
       popularity: Number(source.popularity ?? 0),
       isNewProduct: Boolean(source.isNewProduct),
     };
 
-    if (!Number.isFinite(productData.price) || productData.price < 0 ||
-        !Number.isFinite(productData.stock) || productData.stock < 0) {
-      return NextResponse.json({ error: "Preço ou estoque inválido." }, { status: 400 });
+    const numericFields = ["price", "stock", "weight", "height", "width", "length"] as const;
+    for (const key of numericFields) {
+      const value = productData[key];
+      if (value !== undefined && (!Number.isFinite(value) || value < 0)) {
+        return NextResponse.json({ error: `Campo inválido: ${key}` }, { status: 400 });
+      }
     }
 
     await connectMongoDB();

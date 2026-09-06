@@ -16,7 +16,7 @@ function normalizePayload(body: Record<string, unknown>) {
     if (body[key] !== undefined) data[key] = String(body[key]).trim();
   }
 
-  for (const key of ["price", "stock", "weight", "popularity"]) {
+  for (const key of ["price", "stock", "weight", "height", "width", "length", "popularity"]) {
     if (body[key] !== undefined) {
       const value = Number(body[key]);
       if (!Number.isFinite(value) || value < 0) throw new Error(`Campo inválido: ${key}`);

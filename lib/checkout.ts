@@ -4,22 +4,28 @@ import Product from "@/models/Product";
 import Order from "@/models/Order";
 import ShippingConfig from "@/models/ShippingConfig";
 import { hashCpf } from "@/lib/cpf";
+import type { ShippingCarrier, ShippingQuote } from "@/lib/shipping/types";
 
 type CheckoutInput = {
   items: Array<{ productId: string; quantity: number; type?: string }>;
   customer: { name: string; email: string; cpf: string };
   shippingAddress: { cep: string; street: string; number: string; neighborhood: string; city: string; state: string; complement?: string };
   coupon?: { code?: string; type?: string; value?: number } | string | null;
+  shipping?: number;
+  shippingQuoteId?: string;
 };
+
 type AffiliateResult = {
   userId: unknown; couponCode: string; discountGiven: number;
   commissionPercentage: number; commissionValue: number; status: string;
 };
+
 type CouponMeta = {
   code: string | null; type: string | null; value: number; applied: boolean; cpfHash: string | null;
 };
 
 function cleanState(state: string) { return state.trim().toUpperCase(); }
+
 function normalizeCoupon(input: CheckoutInput["coupon"]) {
   if (!input) return null;
   if (typeof input === "string") { const code = input.trim().toUpperCase(); return code ? { code } : null; }
@@ -27,7 +33,13 @@ function normalizeCoupon(input: CheckoutInput["coupon"]) {
   return code ? { ...input, code } : null;
 }
 
-async function processCoupon(couponInput: CheckoutInput["coupon"], userId: string, cpfHash: string, itemsTotal: number, originalShipping: number) {
+async function processCoupon(
+  couponInput: CheckoutInput["coupon"],
+  userId: string,
+  cpfHash: string,
+  itemsTotal: number,
+  originalShipping: number,
+) {
   const coupon = normalizeCoupon(couponInput);
   const itemsDiscount = 0;
   const shippingDiscount = 0;
@@ -75,6 +87,7 @@ export async function createPendingOrder(input: CheckoutInput, userId: string) {
   }
 
   const validatedItems: Array<{ productId: unknown; title: string; quantity: number; unit_price: number; type: "product" }> = [];
+
   for (const item of input.items) {
     if (item.type && item.type !== "product") continue;
     const quantity = Number(item.quantity);
@@ -84,19 +97,36 @@ export async function createPendingOrder(input: CheckoutInput, userId: string) {
     if (product.stock < quantity) throw new Error(`Estoque insuficiente: ${product.name}`);
     validatedItems.push({ productId: product._id, title: product.name, quantity, unit_price: Number(product.price), type: "product" });
   }
+
   if (!validatedItems.length) throw new Error("Nenhum produto válido no carrinho.");
 
   const itemsTotal = Number(validatedItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0).toFixed(2));
+
   const config = await ShippingConfig.findOne().sort({ createdAt: -1 }).lean() as {
     shippingByState?: Map<string, number> | Record<string, number>; freeShippingMinValue?: number;
   } | null;
+
   const state = cleanState(address.state);
   const shippingByState = config?.shippingByState;
   let configuredShipping = 0;
+
   if (shippingByState instanceof Map) configuredShipping = Number(shippingByState.get(state) ?? 0);
   else if (shippingByState && typeof shippingByState === "object") configuredShipping = Number(shippingByState[state] ?? 0);
+
   const freeShippingMinValue = Number(config?.freeShippingMinValue ?? 0);
-  const originalShipping = freeShippingMinValue > 0 && itemsTotal >= freeShippingMinValue ? 0 : configuredShipping;
+  const originalShipping = freeShippingMinValue > 0 && itemsTotal >= freeShippingMinValue
+    ? 0
+    : configuredShipping;
+
+  const shippingQuote: ShippingQuote = {
+    id: "fixed-state",
+    carrier: "fixed",
+    service: "STANDARD",
+    label: "Entrega padrão",
+    price: Number(originalShipping.toFixed(2)),
+    deadline: null,
+    currency: "BRL",
+  };
 
   const couponResult = await processCoupon(input.coupon, userId, hashCpf(cpf), itemsTotal, originalShipping);
   const safeItemsDiscount = Math.min(Math.max(couponResult.itemsDiscount, 0), itemsTotal);
@@ -112,6 +142,12 @@ export async function createPendingOrder(input: CheckoutInput, userId: string) {
       originalShipping: Number(originalShipping.toFixed(2)),
       shippingDiscount: Number(couponResult.shippingDiscount.toFixed(2)),
       shipping: Number(couponResult.finalShipping.toFixed(2)), total,
+    },
+    shipping: {
+      carrier: shippingQuote.carrier,
+      service: shippingQuote.service,
+      quoteId: shippingQuote.id,
+      deadline: shippingQuote.deadline,
     },
     shippingAddress: { ...address, state },
     payment: { method: "mercadopago", status: "pending" },
@@ -135,3 +171,4 @@ export async function createPendingOrder(input: CheckoutInput, userId: string) {
     },
   };
 }
+

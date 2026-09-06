@@ -1,5 +1,6 @@
 import type { Address } from "@/contexts/AuthContext";
 import type { CartItem } from "@/contexts/CartContext";
+import type { ShippingQuote } from "@/lib/shipping/types";
 
 export type ShippingConfig = {
   shippingByState: Record<string, number>;
@@ -18,6 +19,10 @@ export type CheckoutState = {
   address: Address;
   cpf: string;
   shipping: number;
+  shippingLoading: boolean;
+  shippingConfig: ShippingConfig | null;
+  shippingOptions: ShippingQuote[];
+  selectedShipping: ShippingQuote | null;
   coupon: AppliedCoupon | null;
 };
 
@@ -34,6 +39,7 @@ export type CheckoutPayload = {
   };
   shippingAddress: Address;
   shipping: number;
+  shippingQuoteId?: string;
   coupon?: {
     code: string;
     type: AppliedCoupon["type"];

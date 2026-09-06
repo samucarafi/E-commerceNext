@@ -4,6 +4,7 @@ const cards = [
   ["Produtos", "Gerencie o catálogo.", "/admin/produtos"],
   ["Usuários", "Consulte os clientes e permissões.", "/admin/usuarios"],
   ["Pedidos", "Acompanhe vendas e entregas.", "/admin/pedidos"],
+  ["Frete", "Configure modalidades, origem e credenciais.", "/admin/frete"],
 ];
 
 export default function AdminPage() {

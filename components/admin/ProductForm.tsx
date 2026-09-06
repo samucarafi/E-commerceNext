@@ -15,6 +15,9 @@ type Product = {
   gender?: string;
   brand?: string;
   weight?: number;
+  height?: number;
+  width?: number;
+  length?: number;
   isNewProduct?: boolean;
 };
 
@@ -27,7 +30,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
   const [form, setForm] = useState({
     name: "", price: "", description: "", image: "", stock: "0",
     category: "", type: "Perfume", gender: "", brand: "", weight: "",
-    isNewProduct: false,
+    height: "", width: "", length: "", isNewProduct: false,
   });
   const [loading, setLoading] = useState(editing);
   const [error, setError] = useState("");
@@ -43,7 +46,11 @@ export default function ProductForm({ productId }: { productId?: string }) {
         name: p.name ?? "", price: String(p.price ?? ""), description: p.description ?? "",
         image: p.image ?? "", stock: String(p.stock ?? 0), category: p.category ?? "",
         type: p.type ?? "Perfume", gender: p.gender ?? "", brand: p.brand ?? "",
-        weight: p.weight == null ? "" : String(p.weight), isNewProduct: Boolean(p.isNewProduct),
+        weight: p.weight == null ? "" : String(p.weight),
+        height: p.height == null ? "" : String(p.height),
+        width: p.width == null ? "" : String(p.width),
+        length: p.length == null ? "" : String(p.length),
+        isNewProduct: Boolean(p.isNewProduct),
       }))
       .catch((e) => setError(e.message || "Não foi possível carregar o produto."))
       .finally(() => setLoading(false));
@@ -62,6 +69,9 @@ export default function ProductForm({ productId }: { productId?: string }) {
       price: Number(form.price),
       stock: Number(form.stock),
       weight: form.weight === "" ? undefined : Number(form.weight),
+      height: form.height === "" ? undefined : Number(form.height),
+      width: form.width === "" ? undefined : Number(form.width),
+      length: form.length === "" ? undefined : Number(form.length),
       popularity: 0,
     };
 
@@ -122,8 +132,26 @@ export default function ProductForm({ productId }: { productId?: string }) {
             <input required min="0" type="number" className={inputClass} value={form.stock} onChange={(e) => set("stock", e.target.value)} />
           </label>
           <label className="text-xs font-medium text-gray-500">Peso (kg)
-            <input min="0" step="0.01" type="number" className={inputClass} value={form.weight} onChange={(e) => set("weight", e.target.value)} />
+            <input min="0" step="0.001" type="number" className={inputClass} value={form.weight} onChange={(e) => set("weight", e.target.value)} />
           </label>
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-medium text-gray-500">Dimensões para envio (cm)</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="text-xs font-medium text-gray-500">Altura
+              <input min="0" step="0.1" type="number" className={inputClass} value={form.height} onChange={(e) => set("height", e.target.value)} />
+            </label>
+            <label className="text-xs font-medium text-gray-500">Largura
+              <input min="0" step="0.1" type="number" className={inputClass} value={form.width} onChange={(e) => set("width", e.target.value)} />
+            </label>
+            <label className="text-xs font-medium text-gray-500">Comprimento
+              <input min="0" step="0.1" type="number" className={inputClass} value={form.length} onChange={(e) => set("length", e.target.value)} />
+            </label>
+          </div>
+          <p className="mt-2 text-[11px] text-gray-400">
+            Esses dados serão usados futuramente nas cotações das transportadoras.
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
