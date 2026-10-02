@@ -1,3 +1,10 @@
+import type {
+  ProductType,
+  LegacyProductType,
+} from "@/lib/product-types";
+
+export type { ProductType, LegacyProductType } from "@/lib/product-types";
+
 export type Product = {
   id: string;
   /** ID do MongoDB mantido para compatibilidade com o carrinho e APIs legadas. */
@@ -9,7 +16,7 @@ export type Product = {
   image: string;
   stock: number;
   category: string;
-  type: "Perfume" | "Decante";
+  type: ProductType | LegacyProductType;
   gender: "Masculino" | "Feminino" | "Unissex";
   isNewProduct: boolean;
   brand: string;

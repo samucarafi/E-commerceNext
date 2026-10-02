@@ -2,12 +2,20 @@ import { NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import { getAuthenticatedUser } from "@/lib/auth-server";
+import { ALL_PRODUCT_TYPES } from "@/lib/product-types";
 
 export const dynamic = "force-dynamic";
 
 async function isAdmin() {
   const user = await getAuthenticatedUser();
   return user?.role === "admin";
+}
+
+function validateType(value: unknown, fallback?: string) {
+  const type = String(value ?? fallback ?? ALL_PRODUCT_TYPES[0]);
+  return ALL_PRODUCT_TYPES.includes(type as (typeof ALL_PRODUCT_TYPES)[number])
+    ? type
+    : null;
 }
 
 export async function GET() {
@@ -19,7 +27,10 @@ export async function GET() {
     return NextResponse.json(products);
   } catch (error) {
     console.error("GET /api/products:", error);
-    return NextResponse.json({ error: "Não foi possível carregar os produtos." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Não foi possível carregar os produtos." },
+      { status: 500 },
+    );
   }
 }
 
@@ -36,10 +47,22 @@ export async function POST(request: Request) {
 
     const source = body as Record<string, unknown>;
     const required = ["name", "price", "description", "image", "category"];
+
     for (const key of required) {
       if (source[key] === undefined || source[key] === "") {
-        return NextResponse.json({ error: `O campo ${key} é obrigatório.` }, { status: 400 });
+        return NextResponse.json(
+          { error: `O campo ${key} é obrigatório.` },
+          { status: 400 },
+        );
       }
+    }
+
+    const type = validateType(source.type);
+    if (!type) {
+      return NextResponse.json(
+        { error: "Tipo de produto inválido." },
+        { status: 400 },
+      );
     }
 
     const productData = {
@@ -49,30 +72,60 @@ export async function POST(request: Request) {
       image: String(source.image).trim(),
       stock: Number(source.stock ?? 0),
       category: String(source.category),
-      type: String(source.type ?? "Perfume"),
+      type,
       gender: source.gender ? String(source.gender) : undefined,
       brand: String(source.brand ?? "").trim(),
-      weight: source.weight === undefined || source.weight === "" ? undefined : Number(source.weight),
-      height: source.height === undefined || source.height === "" ? undefined : Number(source.height),
-      width: source.width === undefined || source.width === "" ? undefined : Number(source.width),
-      length: source.length === undefined || source.length === "" ? undefined : Number(source.length),
+      weight:
+        source.weight === undefined || source.weight === ""
+          ? undefined
+          : Number(source.weight),
+      height:
+        source.height === undefined || source.height === ""
+          ? undefined
+          : Number(source.height),
+      width:
+        source.width === undefined || source.width === ""
+          ? undefined
+          : Number(source.width),
+      length:
+        source.length === undefined || source.length === ""
+          ? undefined
+          : Number(source.length),
       popularity: Number(source.popularity ?? 0),
       isNewProduct: Boolean(source.isNewProduct),
     };
 
-    const numericFields = ["price", "stock", "weight", "height", "width", "length"] as const;
+    const numericFields = [
+      "price",
+      "stock",
+      "weight",
+      "height",
+      "width",
+      "length",
+    ] as const;
+
     for (const key of numericFields) {
       const value = productData[key];
-      if (value !== undefined && (!Number.isFinite(value) || value < 0)) {
-        return NextResponse.json({ error: `Campo inválido: ${key}` }, { status: 400 });
+      if (
+        value !== undefined &&
+        (!Number.isFinite(value) || value < 0)
+      ) {
+        return NextResponse.json(
+          { error: `Campo inválido: ${key}` },
+          { status: 400 },
+        );
       }
     }
 
     await connectMongoDB();
     const product = await Product.create(productData);
+
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error("POST /api/products:", error);
-    return NextResponse.json({ error: "Não foi possível criar o produto." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Não foi possível criar o produto." },
+      { status: 400 },
+    );
   }
 }

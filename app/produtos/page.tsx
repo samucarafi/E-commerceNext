@@ -9,16 +9,14 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Perfumes e Fragrâncias",
   description:
-    "Explore o catálogo de perfumes, decantes e fragrâncias da Royal Parfums.",
-  alternates: {
-    canonical: "/produtos",
-  },
+    "Explore o catálogo de perfumes, decants de nicho, decants design, decants árabes e fragrâncias selecionadas da Royal Parfums.",
+  alternates: { canonical: "/produtos" },
   openGraph: {
     type: "website",
     locale: "pt_BR",
     title: "Perfumes e Fragrâncias | Royal Parfums",
     description:
-      "Explore o catálogo de perfumes, decantes e fragrâncias da Royal Parfums.",
+      "Explore o catálogo de perfumes, decants de nicho, decants design, decants árabes e fragrâncias selecionadas da Royal Parfums.",
     url: "/produtos",
   },
 };
@@ -49,28 +47,20 @@ function filterProducts(products: Product[], params: SearchParams) {
       !q ||
       getText(product.name).includes(q) ||
       getText(product.brand).includes(q) ||
-      getText(product.category).includes(q);
+      getText(product.category).includes(q) ||
+      getText(product.type).includes(q);
 
     const matchesType = !params.type || product.type === params.type;
     const matchesGender = !params.gender || product.gender === params.gender;
-    const matchesCategory =
-      !params.category || product.category === params.category;
+    const matchesCategory = !params.category || product.category === params.category;
     const matchesNew = params.new !== "1" || product.isNewProduct;
 
-    return (
-      matchesQuery &&
-      matchesType &&
-      matchesGender &&
-      matchesCategory &&
-      matchesNew
-    );
+    return matchesQuery && matchesType && matchesGender && matchesCategory && matchesNew;
   });
 
   switch (params.sort) {
     case "az":
-      result = [...result].sort((a, b) =>
-        a.name.localeCompare(b.name, "pt-BR"),
-      );
+      result = [...result].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
       break;
     case "price-asc":
       result = [...result].sort((a, b) => Number(a.price) - Number(b.price));
@@ -79,9 +69,7 @@ function filterProducts(products: Product[], params: SearchParams) {
       result = [...result].sort((a, b) => Number(b.price) - Number(a.price));
       break;
     case "popularity":
-      result = [...result].sort(
-        (a, b) => Number(b.popularity ?? 0) - Number(a.popularity ?? 0),
-      );
+      result = [...result].sort((a, b) => Number(b.popularity ?? 0) - Number(a.popularity ?? 0));
       break;
     default:
       break;
@@ -103,10 +91,7 @@ export default async function ProdutosPage({
   ).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
   const requestedPage = Number(params.page ?? 1);
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredProducts.length / PAGE_SIZE),
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
   const page = Number.isFinite(requestedPage)
     ? Math.min(Math.max(requestedPage, 1), totalPages)
     : 1;
@@ -123,17 +108,10 @@ export default async function ProdutosPage({
     <main className="min-h-screen bg-[#F8F5F2]">
       <div className="mx-auto max-w-[1400px] px-4 py-10 md:px-6 md:py-14">
         <header className="mb-8">
-          <p className="mb-1 text-[10px] uppercase tracking-[0.28em] text-[#C6A75E]">
-            Catálogo
-          </p>
-          <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-light">
-            Nossas Fragrâncias
-          </h1>
+          <p className="mb-1 text-[10px] uppercase tracking-[0.28em] text-[#C6A75E]">Catálogo</p>
+          <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-light">Nossas Fragrâncias</h1>
           <p className="mt-2 text-sm text-gray-500">
-            {filteredProducts.length}{" "}
-            {filteredProducts.length === 1
-              ? "produto encontrado"
-              : "produtos encontrados"}
+            {filteredProducts.length} {filteredProducts.length === 1 ? "produto encontrado" : "produtos encontrados"}
           </p>
         </header>
 
@@ -157,9 +135,7 @@ export default async function ProdutosPage({
           <section>
             <div className="mb-5 lg:hidden">
               <details className="rounded-2xl border border-[#e8ddd0] bg-white p-1">
-                <summary className="cursor-pointer list-none rounded-xl px-4 py-3 text-sm font-semibold text-[#5b2333]">
-                  Filtrar e ordenar
-                </summary>
+                <summary className="cursor-pointer list-none rounded-xl px-4 py-3 text-sm font-semibold text-[#5b2333]">Filtrar e ordenar</summary>
                 <div className="p-3">
                   <CatalogFilters
                     categories={categories}
@@ -178,27 +154,15 @@ export default async function ProdutosPage({
 
             {pageProducts.length > 0 ? (
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 md:gap-7">
-                {pageProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
+                {pageProducts.map((product) => <ProductCard key={product.id} product={product} />)}
               </div>
             ) : (
               <div className="rounded-3xl border border-dashed border-[#d8cabb] bg-white px-6 py-20 text-center">
-                <p className="font-serif text-2xl text-[#2e2e2e]">
-                  Nenhuma fragrância encontrada
-                </p>
-                <p className="mt-2 text-sm text-gray-500">
-                  Tente remover alguns filtros ou pesquisar por outro termo.
-                </p>
-                <Link
-                  href="/produtos"
-                  className="mt-6 inline-block rounded-full bg-[#5b2333] px-6 py-3 text-sm font-semibold text-white"
-                >
-                  Limpar filtros
-                </Link>
+                <p className="font-serif text-2xl text-[#2e2e2e]">Nenhuma fragrância encontrada</p>
+                <p className="mt-2 text-sm text-gray-500">Tente remover alguns filtros ou pesquisar por outro termo.</p>
+                <Link href="/produtos" className="mt-6 inline-block rounded-full bg-[#5b2333] px-6 py-3 text-sm font-semibold text-white">Limpar filtros</Link>
               </div>
             )}
-
             <Pagination page={page} totalPages={totalPages} query={query} />
           </section>
         </div>

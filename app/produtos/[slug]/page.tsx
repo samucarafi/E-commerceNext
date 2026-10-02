@@ -37,9 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       "perfume",
       "Royal Parfums",
     ].filter(Boolean),
-    alternates: {
-      canonical: `/produtos/${product.slug}`,
-    },
+    alternates: { canonical: `/produtos/${product.slug}` },
     openGraph: {
       type: "website",
       title: `${product.name} | Royal Parfums`,
@@ -59,10 +57,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 function money(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
 export default async function ProductPage({ params }: Props) {
@@ -75,11 +70,11 @@ export default async function ProductPage({ params }: Props) {
 
   const relatedProducts = allProducts
     .filter((item) => item.slug !== product.slug)
-    .filter(
-      (item) =>
-        item.category === product.category ||
-        item.brand === product.brand ||
-        item.gender === product.gender,
+    .filter((item) =>
+      item.category === product.category ||
+      item.brand === product.brand ||
+      item.gender === product.gender ||
+      item.type === product.type
     )
     .sort((a, b) => {
       const score = (item: typeof product) => {
@@ -87,10 +82,10 @@ export default async function ProductPage({ params }: Props) {
         if (item.category === product.category) value += 3;
         if (item.brand === product.brand) value += 3;
         if (item.gender === product.gender) value += 1;
+        if (item.type === product.type) value += 2;
         if (item.isNewProduct) value += 1;
         return value;
       };
-
       return score(b) - score(a);
     })
     .slice(0, 4);
@@ -99,8 +94,7 @@ export default async function ProductPage({ params }: Props) {
     product.description?.trim() ||
     `${product.name} ${product.type.toLowerCase()} da ${product.brand || "Royal Parfums"}.`;
 
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "https://royalparfums.com.br";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://royalparfums.com.br";
   const productUrl = `${siteUrl}/produtos/${product.slug}`;
   const imageUrl = product.image
     ? product.image.startsWith("http")
@@ -115,20 +109,15 @@ export default async function ProductPage({ params }: Props) {
     description,
     sku: product._id,
     image: [imageUrl],
-    brand: {
-      "@type": "Brand",
-      name: product.brand || "Royal Parfums",
-    },
-    category: product.category,
+    brand: { "@type": "Brand", name: product.brand || "Royal Parfums" },
+    category: `${product.type}${product.category ? ` · ${product.category}` : ""}`,
     offers: {
       "@type": "Offer",
       url: productUrl,
       priceCurrency: "BRL",
       price: Number(product.price).toFixed(2),
       availability:
-        product.stock > 0
-          ? "https://schema.org/InStock"
-          : "https://schema.org/OutOfStock",
+        product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
     },
   };
@@ -137,41 +126,19 @@ export default async function ProductPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Início",
-        item: siteUrl,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Fragrâncias",
-        item: `${siteUrl}/produtos`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: product.name,
-        item: productUrl,
-      },
+      { "@type": "ListItem", position: 1, name: "Início", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Fragrâncias", item: `${siteUrl}/produtos` },
+      { "@type": "ListItem", position: 3, name: product.name, item: productUrl },
     ],
   };
 
   return (
     <main className="min-h-screen bg-[#f8f5f2]">
       <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 sm:py-10">
-        <nav
-          aria-label="Breadcrumb"
-          className="mb-8 flex flex-wrap items-center gap-2 text-xs text-gray-500"
-        >
-          <Link href="/" className="transition hover:text-[#5b2333]">
-            Início
-          </Link>
+        <nav aria-label="Breadcrumb" className="mb-8 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+          <Link href="/" className="transition hover:text-[#5b2333]">Início</Link>
           <span>›</span>
-          <Link href="/produtos" className="transition hover:text-[#5b2333]">
-            Fragrâncias
-          </Link>
+          <Link href="/produtos" className="transition hover:text-[#5b2333]">Fragrâncias</Link>
           <span>›</span>
           <span className="text-gray-700">{product.name}</span>
         </nav>
@@ -179,19 +146,13 @@ export default async function ProductPage({ params }: Props) {
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)] lg:gap-14">
           <div className="relative aspect-square overflow-hidden rounded-3xl border border-[#e8ddd0] bg-white">
             {product.isNewProduct && (
-              <span className="absolute left-5 top-5 z-10 rounded-full bg-[#1c1c1c] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#f5e6d3]">
-                Novidade
-              </span>
+              <span className="absolute left-5 top-5 z-10 rounded-full bg-[#1c1c1c] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#f5e6d3]">Novidade</span>
             )}
-
             {product.stock <= 0 && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/30">
-                <span className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#2e2e2e]">
-                  Produto esgotado
-                </span>
+                <span className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-[#2e2e2e]">Produto esgotado</span>
               </div>
             )}
-
             <Image
               src={product.image || "/images/default-perfume.jpg"}
               alt={product.name}
@@ -211,31 +172,22 @@ export default async function ProductPage({ params }: Props) {
               {product.name}
             </h1>
 
-            <p className="mt-5 text-3xl font-semibold text-[#5b2333]">
-              {money(product.price)}
-            </p>
+            <p className="mt-5 text-3xl font-semibold text-[#5b2333]">{money(product.price)}</p>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              {[product.type, product.gender, product.category].map((label) => (
-                <span
-                  key={label}
-                  className="rounded-full bg-[#eee4da] px-3 py-1.5 text-xs font-medium text-[#5b2333]"
-                >
+              {[product.type, product.gender, product.category].filter(Boolean).map((label) => (
+                <span key={label} className="rounded-full bg-[#eee4da] px-3 py-1.5 text-xs font-medium text-[#5b2333]">
                   {label}
                 </span>
               ))}
             </div>
 
-            <p className="mt-7 whitespace-pre-line leading-7 text-gray-600">
-              {description}
-            </p>
+            <p className="mt-7 whitespace-pre-line leading-7 text-gray-600">{description}</p>
 
             <div className="mt-7 grid grid-cols-2 gap-3 rounded-2xl border border-[#e8ddd0] bg-white p-4 text-sm">
               <div>
                 <p className="text-gray-400">Disponibilidade</p>
-                <p className="mt-1 font-medium">
-                  {product.stock > 0 ? "Em estoque" : "Esgotado"}
-                </p>
+                <p className="mt-1 font-medium">{product.stock > 0 ? "Em estoque" : "Esgotado"}</p>
               </div>
 
               {product.weight != null && (
@@ -251,7 +203,7 @@ export default async function ProductPage({ params }: Props) {
               </div>
 
               <div>
-                <p className="text-gray-400">Categoria</p>
+                <p className="text-gray-400">Categoria olfativa</p>
                 <p className="mt-1 font-medium">{product.category}</p>
               </div>
             </div>
@@ -263,18 +215,11 @@ export default async function ProductPage({ params }: Props) {
         {relatedProducts.length > 0 && (
           <section className="mt-16 border-t border-[#e8ddd0] pt-12">
             <div className="mb-7">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8d6b50]">
-                Você também pode gostar
-              </p>
-              <h2 className="mt-2 font-[family-name:var(--font-playfair)] text-3xl text-[#2e2e2e]">
-                Outras fragrâncias
-              </h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8d6b50]">Você também pode gostar</p>
+              <h2 className="mt-2 font-[family-name:var(--font-playfair)] text-3xl text-[#2e2e2e]">Outras fragrâncias</h2>
             </div>
-
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-              {relatedProducts.map((item) => (
-                <ProductCard key={item._id} product={item} />
-              ))}
+              {relatedProducts.map((item) => <ProductCard key={item._id} product={item} />)}
             </div>
           </section>
         )}
@@ -283,10 +228,7 @@ export default async function ProductPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify([structuredData, breadcrumbSchema]).replace(
-            /</g,
-            "\u003c",
-          ),
+          __html: JSON.stringify([structuredData, breadcrumbSchema]).replace(/</g, "\u003c"),
         }}
       />
     </main>

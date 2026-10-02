@@ -1,4 +1,7 @@
 import mongoose, { Schema } from "mongoose";
+import { PRODUCT_TYPES } from "@/lib/product-types";
+
+export { PRODUCT_TYPES } from "@/lib/product-types";
 
 const productSchema = new Schema(
   {
@@ -19,7 +22,11 @@ const productSchema = new Schema(
         "Gourmand",
       ],
     },
-    type: { type: String, enum: ["Perfume", "Decante"], default: "Perfume" },
+    type: {
+      type: String,
+      enum: [...PRODUCT_TYPES, "Perfume", "Decante"],
+      default: PRODUCT_TYPES[0],
+    },
     gender: { type: String, enum: ["Masculino", "Feminino", "Unissex"] },
     isNewProduct: { type: Boolean, default: false },
     brand: { type: String, default: "" },

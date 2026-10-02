@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectMongoDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import { getAuthenticatedUser } from "@/lib/auth-server";
+import { ALL_PRODUCT_TYPES } from "@/lib/product-types";
 
 async function requireAdmin() {
   const user = await getAuthenticatedUser();
@@ -11,20 +12,55 @@ async function requireAdmin() {
 function normalizePayload(body: Record<string, unknown>) {
   const data: Record<string, unknown> = {};
 
-  const strings = ["name", "description", "image", "category", "type", "gender", "brand"];
+  const strings = [
+    "name",
+    "description",
+    "image",
+    "category",
+    "gender",
+    "brand",
+  ];
+
   for (const key of strings) {
-    if (body[key] !== undefined) data[key] = String(body[key]).trim();
+    if (body[key] !== undefined) {
+      data[key] = String(body[key]).trim();
+    }
   }
 
-  for (const key of ["price", "stock", "weight", "height", "width", "length", "popularity"]) {
+  if (body.type !== undefined) {
+    const type = String(body.type).trim();
+
+    if (!ALL_PRODUCT_TYPES.includes(type as (typeof ALL_PRODUCT_TYPES)[number])) {
+      throw new Error("Tipo de produto inválido.");
+    }
+
+    data.type = type;
+  }
+
+  for (const key of [
+    "price",
+    "stock",
+    "weight",
+    "height",
+    "width",
+    "length",
+    "popularity",
+  ]) {
     if (body[key] !== undefined) {
       const value = Number(body[key]);
-      if (!Number.isFinite(value) || value < 0) throw new Error(`Campo inválido: ${key}`);
+
+      if (!Number.isFinite(value) || value < 0) {
+        throw new Error(`Campo inválido: ${key}`);
+      }
+
       data[key] = value;
     }
   }
 
-  if (body.isNewProduct !== undefined) data.isNewProduct = Boolean(body.isNewProduct);
+  if (body.isNewProduct !== undefined) {
+    data.isNewProduct = Boolean(body.isNewProduct);
+  }
+
   return data;
 }
 
@@ -34,13 +70,23 @@ export async function GET(
 ) {
   try {
     await connectMongoDB();
+
     const { id } = await params;
     const product = await Product.findById(id).lean();
 
-    if (!product) return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+    if (!product) {
+      return NextResponse.json(
+        { error: "Produto não encontrado." },
+        { status: 404 },
+      );
+    }
+
     return NextResponse.json(product);
   } catch {
-    return NextResponse.json({ error: "Não foi possível carregar o produto." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Não foi possível carregar o produto." },
+      { status: 500 },
+    );
   }
 }
 
@@ -55,11 +101,16 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json().catch(() => null);
+
     if (!body || typeof body !== "object") {
-      return NextResponse.json({ error: "Dados inválidos." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Dados inválidos." },
+        { status: 400 },
+      );
     }
 
     const data = normalizePayload(body as Record<string, unknown>);
+
     await connectMongoDB();
 
     const product = await Product.findByIdAndUpdate(id, data, {
@@ -67,11 +118,21 @@ export async function PATCH(
       runValidators: true,
     }).lean();
 
-    if (!product) return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
+    if (!product) {
+      return NextResponse.json(
+        { error: "Produto não encontrado." },
+        { status: 404 },
+      );
+    }
+
     return NextResponse.json(product);
   } catch (error) {
     console.error("PATCH /api/products/[id]:", error);
-    return NextResponse.json({ error: "Não foi possível atualizar o produto." }, { status: 400 });
+
+    return NextResponse.json(
+      { error: "Não foi possível atualizar o produto." },
+      { status: 400 },
+    );
   }
 }
 
@@ -85,14 +146,27 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
     await connectMongoDB();
 
     const product = await Product.findByIdAndDelete(id);
-    if (!product) return NextResponse.json({ error: "Produto não encontrado." }, { status: 404 });
 
-    return NextResponse.json({ message: "Produto excluído com sucesso." });
+    if (!product) {
+      return NextResponse.json(
+        { error: "Produto não encontrado." },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      message: "Produto excluído com sucesso.",
+    });
   } catch (error) {
     console.error("DELETE /api/products/[id]:", error);
-    return NextResponse.json({ error: "Não foi possível excluir o produto." }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Não foi possível excluir o produto." },
+      { status: 500 },
+    );
   }
 }

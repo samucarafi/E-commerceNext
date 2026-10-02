@@ -5,8 +5,9 @@ import { Menu, Search, ShoppingBag, UserRound, X, SlidersHorizontal } from "luci
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { PRODUCT_TYPES } from "@/lib/product-types";
 
-const types = ["Perfume", "Decante"];
+const types = PRODUCT_TYPES;
 const genders = ["Masculino", "Feminino", "Unissex"];
 const categories = ["Floral", "Amadeirado", "Frutado", "Oriental", "Cítrico", "Aromático", "Gourmand"];
 
@@ -91,6 +92,6 @@ export default function Header() {
   </>;
 }
 
-function FilterGroup({ title, query, options }: { title: string; query: string; options: string[] }) {
+function FilterGroup({ title, query, options }: { title: string; query: string; options: readonly string[] }) {
   return <div className="mb-7"><p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#C6A75E]">{title}</p><div className="flex flex-wrap gap-2">{options.map(option => <Link key={option} href={`/produtos?${query}=${encodeURIComponent(option)}`} className="rounded-full border border-[#2A2A2A] px-3.5 py-1.5 text-xs text-gray-400 hover:border-[#C6A75E] hover:text-[#F5E6D3]">{option}</Link>)}</div></div>;
 }
