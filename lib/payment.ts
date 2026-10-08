@@ -146,22 +146,14 @@ export async function finalizeApprovedOrder(
 
         const storedCoupon = await Coupon.findOne({ code: order.coupon.code }).session(session);
         if (storedCoupon) {
-          const usageUpdate = await Coupon.updateOne(
-            {
-              _id: storedCoupon._id,
-              active: true,
-              $or: [
-                { usageLimit: null },
-                { usageLimit: { $exists: false } },
-                { $expr: { $lt: ["$usageCount", "$usageLimit"] } },
-              ],
-            },
+          // O pagamento já foi aprovado pelo Mercado Pago. Não podemos deixar o pedido
+          // preso como pendente se o cupom foi desativado ou esgotado após o checkout.
+          // O limite é verificado no checkout; aqui apenas contabilizamos o uso efetivo.
+          await Coupon.updateOne(
+            { _id: storedCoupon._id },
             { $inc: { usageCount: 1 } },
             { session },
           );
-          if (usageUpdate.modifiedCount !== 1) {
-            throw new Error("O limite de uso deste cupom foi atingido antes da confirmação do pagamento.");
-          }
         }
       }
 
