@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Share2 } from "lucide-react";
+import { Check, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -8,12 +8,6 @@ export default function AffiliateShareButton({ slug, name }: { slug: string; nam
   const { user } = useAuth();
   const [code, setCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [canShare, setCanShare] = useState(false);
-
-  useEffect(() => {
-    setCanShare(typeof navigator !== "undefined" && Boolean(navigator.share));
-  }, []);
-
   useEffect(() => {
     if (!user) return;
     fetch("/api/affiliate")
@@ -47,7 +41,7 @@ export default function AffiliateShareButton({ slug, name }: { slug: string; nam
       onClick={share}
       className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#d9ccbf] bg-white px-4 py-3 text-sm font-medium text-[#5b2333] transition hover:border-[#C6A75E]"
     >
-      {copied ? <Check size={16} /> : canShare ? <Share2 size={16} /> : <Copy size={16} />}
+      {copied ? <Check size={16} /> : <Share2 size={16} />}
       {copied ? "Link copiado" : "Compartilhar como afiliado"}
     </button>
   );

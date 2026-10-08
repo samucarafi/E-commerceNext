@@ -25,9 +25,9 @@ export default function CouponHomeSelector() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [now, setNow] = useState<number | null>(null);
 
   const loadCoupons = useCallback(async () => {
-    setLoading(true);
     try {
       const response = await fetch("/api/admin/coupons", { cache: "no-store" });
       const data = await response.json();
@@ -40,7 +40,18 @@ export default function CouponHomeSelector() {
     }
   }, []);
 
+  // O efeito inicia uma carga assíncrona; os estados são atualizados após a resposta HTTP.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  // O efeito inicia uma carga assíncrona; os estados são atualizados após a resposta HTTP.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  // O efeito inicia uma carga assíncrona; os estados são atualizados após a resposta HTTP.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void loadCoupons(); }, [loadCoupons]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function chooseCoupon(coupon: Coupon, showOnHome: boolean) {
     setSaving(coupon._id);
@@ -72,7 +83,8 @@ export default function CouponHomeSelector() {
           Nenhum cupom cadastrado foi encontrado. Cadastre um cupom antes de selecioná-lo para a home.
         </div>
       ) : coupons.map((coupon) => {
-        const expired = Boolean(coupon.expiresAt && new Date(coupon.expiresAt).getTime() < Date.now());
+        const expiredAt = coupon.expiresAt ? new Date(coupon.expiresAt).getTime() : null;
+        const expired = Boolean(now !== null && expiredAt !== null && expiredAt < now);
         const exhausted = Boolean(coupon.usageLimit && (coupon.usageCount ?? 0) >= coupon.usageLimit);
         const selectable = coupon.active && !expired && !exhausted;
         return (

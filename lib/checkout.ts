@@ -6,7 +6,7 @@ import Order from "@/models/Order";
 import ShippingConfig from "@/models/ShippingConfig";
 import Coupon from "@/models/Coupon";
 import { hashCpf } from "@/lib/cpf";
-import type { ShippingCarrier, ShippingQuote } from "@/lib/shipping/types";
+import type { ShippingQuote } from "@/lib/shipping/types";
 
 type CheckoutInput = {
   items: Array<{ productId: string; quantity: number; type?: string }>;

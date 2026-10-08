@@ -8,6 +8,22 @@ const METHODS = ["fixed", "correios", "loggi"] as const;
 
 type ShippingMethod = (typeof METHODS)[number];
 
+type ShippingConfigLike = {
+  originCep?: string;
+  enabledMethods?: ShippingMethod[];
+  shippingByState?: Map<string, number> | Record<string, number>;
+  freeShippingMinValue?: number;
+  extraDays?: number;
+  credentials?: {
+    correios?: { tokenEncrypted?: string | null };
+    loggi?: {
+      clientIdEncrypted?: string | null;
+      clientSecretEncrypted?: string | null;
+      companyIdEncrypted?: string | null;
+    };
+  };
+};
+
 function isAdmin(user: { role?: string } | null) {
   return user?.role === "admin";
 }
@@ -35,7 +51,7 @@ function numberOrZero(value: unknown) {
   return Number.isFinite(number) && number >= 0 ? number : 0;
 }
 
-function safeResponse(config: any) {
+function safeResponse(config: ShippingConfigLike) {
   const correios = config.credentials?.correios ?? {};
   const loggi = config.credentials?.loggi ?? {};
 

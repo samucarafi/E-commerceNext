@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 type Product = {
   _id: string; name: string; price: number; image?: string; stock: number;
@@ -60,7 +61,7 @@ export default function ProdutosAdminClient() {
         <th className="px-5 py-3.5 text-left text-[10px] uppercase tracking-wider text-gray-400">Produto</th><th className="px-5 py-3.5 text-left text-[10px] uppercase tracking-wider text-gray-400">Preço</th><th className="px-5 py-3.5 text-left text-[10px] uppercase tracking-wider text-gray-400">Estoque</th><th className="px-5 py-3.5 text-left text-[10px] uppercase tracking-wider text-gray-400">Tipo</th><th className="px-5 py-3.5 text-left text-[10px] uppercase tracking-wider text-gray-400">Categoria</th><th className="px-5 py-3.5 text-right text-[10px] uppercase tracking-wider text-gray-400">Ações</th>
       </tr></thead><tbody className="divide-y divide-[#f5f0eb]">
         {products.map((p) => <tr key={p._id} className="hover:bg-[#faf7f4]">
-          <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="h-12 w-12 overflow-hidden rounded-xl bg-[#f5f0eb]">{p.image && <img src={p.image} alt={p.name} className="h-full w-full object-contain p-1" />}</div><div><p className="max-w-[220px] truncate font-medium">{p.name}</p><p className="text-[10px] uppercase tracking-wide text-[#b0a090]">{p.brand}</p></div></div></td>
+          <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="h-12 w-12 overflow-hidden rounded-xl bg-[#f5f0eb]">{p.image && <Image src={p.image} alt={p.name} width={48} height={48} unoptimized className="h-full w-full object-contain p-1" />}</div><div><p className="max-w-[220px] truncate font-medium">{p.name}</p><p className="text-[10px] uppercase tracking-wide text-[#b0a090]">{p.brand}</p></div></div></td>
           <td className="px-5 py-4 font-medium text-[#5b2333]">R$ {p.price.toFixed(2).replace(".", ",")}</td>
           <td className="px-5 py-4"><Badge tone={p.stock === 0 ? "rose" : p.stock < 10 ? "gold" : "green"}>{p.stock === 0 ? "Esgotado" : `${p.stock} un`}</Badge></td>
           <td className="px-5 py-4"><div className="flex gap-1">{p.type && <Badge>{p.type}</Badge>}{p.isNewProduct && <Badge tone="gold">Novo</Badge>}</div></td>

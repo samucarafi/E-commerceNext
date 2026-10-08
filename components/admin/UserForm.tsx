@@ -47,9 +47,7 @@ export default function UserForm({
 
   // O formulário é um estado editável que precisa acompanhar a troca do usuário selecionado.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm(getInitialForm(user));
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setError("");
   }, [user]);
 

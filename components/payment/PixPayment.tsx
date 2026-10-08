@@ -50,9 +50,7 @@ export function PixPayment({
 
   // Sincroniza os dados recebidos pelo servidor com o estado visual do pagamento.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus(initialStatus);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpiration(dateOfExpiration);
   }, [initialStatus, dateOfExpiration]);
 
