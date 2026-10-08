@@ -32,6 +32,10 @@ type Coupon = {
   firstPurchaseOnly: boolean;
   usageLimit?: number | null;
   usageCount: number;
+  perUserLimit?: number | null;
+  showOnHome?: boolean;
+  salesCount?: number;
+  totalRevenue?: number;
   expiresAt?: string | null;
 };
 
@@ -56,6 +60,8 @@ export default function AffiliatesAdminPage() {
   const [couponType, setCouponType] = useState<Coupon["type"]>("percentage");
   const [couponValue, setCouponValue] = useState("10");
   const [couponLimit, setCouponLimit] = useState("");
+  const [couponPerUserLimit, setCouponPerUserLimit] = useState("");
+  const [couponShowOnHome, setCouponShowOnHome] = useState(false);
   const [couponExpiry, setCouponExpiry] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -147,6 +153,8 @@ export default function AffiliatesAdminPage() {
           type: couponType,
           value: Number(couponValue),
           usageLimit: couponLimit ? Number(couponLimit) : null,
+          perUserLimit: couponPerUserLimit ? Number(couponPerUserLimit) : null,
+          showOnHome: couponShowOnHome,
           expiresAt: couponExpiry || null,
         }),
       });
@@ -154,6 +162,8 @@ export default function AffiliatesAdminPage() {
       if (!response.ok) throw new Error(data.error || "Erro ao criar cupom.");
       setCouponCode("");
       setCouponLimit("");
+      setCouponPerUserLimit("");
+      setCouponShowOnHome(false);
       setCouponExpiry("");
       await load();
       setMessage("Cupom criado.");
@@ -289,7 +299,7 @@ export default function AffiliatesAdminPage() {
 
       <section className="mt-6 rounded-2xl border border-[#e8ddd0] bg-white p-5">
         <h2 className="font-serif text-2xl text-[#5b2333]">Criar cupom</h2>
-        <div className="mt-5 grid gap-3 md:grid-cols-5">
+        <div className="mt-5 grid gap-3 md:grid-cols-3 lg:grid-cols-5">
           <input value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="PRIMEIRACOMPRA" className="rounded-xl border border-[#e8ddd0] px-3 py-2 text-sm" />
           <select value={couponType} onChange={(e) => setCouponType(e.target.value as Coupon["type"])} className="rounded-xl border border-[#e8ddd0] px-3 py-2 text-sm">
             <option value="percentage">Percentual</option>
@@ -298,7 +308,9 @@ export default function AffiliatesAdminPage() {
             <option value="first_purchase">Primeiro pedido</option>
           </select>
           <input value={couponValue} onChange={(e) => setCouponValue(e.target.value)} type="number" min="0" step="0.01" placeholder="Valor" className="rounded-xl border border-[#e8ddd0] px-3 py-2 text-sm" />
-          <input value={couponLimit} onChange={(e) => setCouponLimit(e.target.value)} type="number" min="1" placeholder="Limite (opcional)" className="rounded-xl border border-[#e8ddd0] px-3 py-2 text-sm" />
+          <input value={couponLimit} onChange={(e) => setCouponLimit(e.target.value)} type="number" min="1" placeholder="Limite total (opcional)" className="rounded-xl border border-[#e8ddd0] px-3 py-2 text-sm" />
+          <input value={couponPerUserLimit} onChange={(e) => setCouponPerUserLimit(e.target.value)} type="number" min="1" placeholder="Limite por usuário (opcional)" className="rounded-xl border border-[#e8ddd0] px-3 py-2 text-sm" />
+          <label className="flex items-center gap-2 rounded-xl border border-[#e8ddd0] px-3 py-2 text-sm"><input type="checkbox" checked={couponShowOnHome} onChange={(e) => setCouponShowOnHome(e.target.checked)} /> Divulgar na Home</label>
           <input value={couponExpiry} onChange={(e) => setCouponExpiry(e.target.value)} type="date" className="rounded-xl border border-[#e8ddd0] px-3 py-2 text-sm" />
         </div>
         <button onClick={saveCoupon} disabled={saving} className="mt-4 rounded-xl bg-[#5b2333] px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
@@ -309,15 +321,19 @@ export default function AffiliatesAdminPage() {
       <section className="mt-6 rounded-2xl border border-[#e8ddd0] bg-white p-5">
         <h2 className="font-serif text-2xl text-[#5b2333]">Cupons cadastrados</h2>
         <div className="mt-5 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead><tr className="border-b border-[#e8ddd0] text-gray-500"><th className="px-3 py-3">Código</th><th>Tipo</th><th>Valor</th><th>Uso</th><th>Estado</th><th /></tr></thead>
+          <table className="w-full min-w-[1080px] text-left text-sm">
+            <thead><tr className="border-b border-[#e8ddd0] text-gray-500"><th className="px-3 py-3">Código</th><th>Tipo</th><th>Valor</th><th>Uso total</th><th>Limite/usuário</th><th>Compras aprovadas</th><th>Faturamento</th><th>Home</th><th>Estado</th><th /></tr></thead>
             <tbody>
               {coupons.map((coupon) => (
                 <tr key={coupon._id} className="border-b border-[#f0e8df]">
                   <td className="px-3 py-3 font-medium">{coupon.code}</td>
                   <td>{coupon.type === "first_purchase" ? "Primeiro pedido" : coupon.type}</td>
                   <td>{coupon.type === "fixed" ? money(coupon.value) : `${coupon.value}%`}</td>
-                  <td>{coupon.usageCount}{coupon.usageLimit ? ` / ${coupon.usageLimit}` : ""}</td>
+                  <td>{coupon.usageCount}{coupon.usageLimit ? ` / ${coupon.usageLimit}` : " / ilimitado"}</td>
+                  <td>{coupon.perUserLimit ?? "Ilimitado"}</td>
+                  <td>{coupon.salesCount ?? 0}</td>
+                  <td>{money(coupon.totalRevenue ?? 0)}</td>
+                  <td>{coupon.showOnHome ? "Sim" : "Não"}</td>
                   <td><button onClick={() => toggleCoupon(coupon)} className={coupon.active ? "text-green-700" : "text-gray-500"}>{coupon.active ? "Ativo" : "Inativo"}</button></td>
                   <td><button onClick={() => removeCoupon(coupon._id)} className="text-xs text-red-700 hover:underline">Excluir</button></td>
                 </tr>

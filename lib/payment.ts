@@ -144,18 +144,25 @@ export async function finalizeApprovedOrder(
           { session },
         );
 
-        await Coupon.updateOne(
-          {
-            code: order.coupon.code,
-            $or: [
-              { usageLimit: null },
-              { usageLimit: { $exists: false } },
-              { $expr: { $lt: ["$usageCount", "$usageLimit"] } },
-            ],
-          },
-          { $inc: { usageCount: 1 } },
-          { session },
-        );
+        const storedCoupon = await Coupon.findOne({ code: order.coupon.code }).session(session);
+        if (storedCoupon) {
+          const usageUpdate = await Coupon.updateOne(
+            {
+              _id: storedCoupon._id,
+              active: true,
+              $or: [
+                { usageLimit: null },
+                { usageLimit: { $exists: false } },
+                { $expr: { $lt: ["$usageCount", "$usageLimit"] } },
+              ],
+            },
+            { $inc: { usageCount: 1 } },
+            { session },
+          );
+          if (usageUpdate.modifiedCount !== 1) {
+            throw new Error("O limite de uso deste cupom foi atingido antes da confirmação do pagamento.");
+          }
+        }
       }
 
       if (order.affiliate?.userId && order.affiliate?.commissionValue) {

@@ -9,7 +9,9 @@ export interface CouponDocument extends mongoose.Document {
   active: boolean;
   firstPurchaseOnly: boolean;
   usageLimit: number | null;
+  perUserLimit: number | null;
   usageCount: number;
+  showOnHome: boolean;
   expiresAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -18,12 +20,18 @@ export interface CouponDocument extends mongoose.Document {
 const couponSchema = new Schema<CouponDocument>(
   {
     code: { type: String, required: true, unique: true, uppercase: true, trim: true },
-    type: { type: String, enum: ["percentage", "fixed", "shipping", "first_purchase"], required: true },
+    type: {
+      type: String,
+      enum: ["percentage", "fixed", "shipping", "first_purchase"],
+      required: true,
+    },
     value: { type: Number, required: true, min: 0 },
     active: { type: Boolean, default: true },
     firstPurchaseOnly: { type: Boolean, default: false },
     usageLimit: { type: Number, default: null, min: 1 },
+    perUserLimit: { type: Number, default: null, min: 1 },
     usageCount: { type: Number, default: 0, min: 0 },
+    showOnHome: { type: Boolean, default: false },
     expiresAt: { type: Date, default: null },
   },
   { timestamps: true },

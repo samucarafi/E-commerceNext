@@ -24,10 +24,10 @@ export default function AddToCartButton({
       type="button"
       onClick={handleAdd}
       disabled={disabled || product.stock <= 0}
-      className="btn-gold inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex min-h-9 w-full min-w-0 items-center justify-center gap-1.5 rounded-full border border-[#c6a75e] bg-[#c6a75e] px-2 py-2 text-[10px] font-semibold leading-tight text-[#211a19] transition hover:bg-[#d4b66e] disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-11 sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs"
     >
-      <ShoppingBag size={18} />
-      {product.stock > 0 ? "Adicionar à sacola" : "Produto esgotado"}
+      <ShoppingBag className="shrink-0" size={14} />
+      <span className="min-w-0">{product.stock > 0 ? "Adicionar" : "Esgotado"}</span>
     </button>
   );
 }

@@ -4,6 +4,7 @@ import User from "@/models/User";
 import Product from "@/models/Product";
 import Order from "@/models/Order";
 import ShippingConfig from "@/models/ShippingConfig";
+import Coupon from "@/models/Coupon";
 import { hashCpf } from "@/lib/cpf";
 import type { ShippingCarrier, ShippingQuote } from "@/lib/shipping/types";
 
@@ -59,13 +60,41 @@ async function processCoupon(
 
   if (!coupon?.code) return { itemsDiscount, shippingDiscount, finalShipping, affiliate, couponMeta };
 
-  if (coupon.code === "PRIMEIRACOMPRA") {
-    const used = await Order.findOne({ "coupon.code": "PRIMEIRACOMPRA", "coupon.cpfHash": cpfHash, "payment.status": "approved" }).lean();
-    if (used) throw new Error("O cupom PRIMEIRACOMPRA já foi utilizado com este CPF.");
-    const percentage = 10;
-    const discount = Number(((itemsTotal * percentage) / 100).toFixed(2));
-    couponMeta = { code: coupon.code, type: "percentage", value: percentage, applied: true, cpfHash };
-    return { itemsDiscount: discount, shippingDiscount, finalShipping, affiliate, couponMeta };
+  const storedCoupon = await Coupon.findOne({ code: coupon.code });
+  if (storedCoupon) {
+    if (!storedCoupon.active) throw new Error("Este cupom está inativo.");
+    if (storedCoupon.expiresAt && storedCoupon.expiresAt.getTime() < Date.now()) throw new Error("Este cupom expirou.");
+    if (storedCoupon.usageLimit !== null && storedCoupon.usageLimit !== undefined && storedCoupon.usageCount >= storedCoupon.usageLimit) {
+      throw new Error("Este cupom atingiu o limite de uso.");
+    }
+    if (storedCoupon.perUserLimit !== null && storedCoupon.perUserLimit !== undefined) {
+      const userUses = await Order.countDocuments({ userId, "coupon.code": coupon.code, "coupon.applied": true, "payment.status": "approved" });
+      if (userUses >= storedCoupon.perUserLimit) throw new Error("Você já atingiu o limite de uso deste cupom.");
+    }
+    if (storedCoupon.firstPurchaseOnly || storedCoupon.type === "first_purchase") {
+      const previousOrder = await Order.findOne({ userId, "payment.status": "approved" }).lean();
+      if (previousOrder) throw new Error("Este cupom é válido apenas no primeiro pedido.");
+    }
+
+    let discount = 0;
+    let shippingDiscountValue = 0;
+    let shippingAfterDiscount = originalShipping;
+    if (storedCoupon.type === "percentage" || storedCoupon.type === "first_purchase") {
+      discount = Number(Math.min(itemsTotal, (itemsTotal * Number(storedCoupon.value)) / 100).toFixed(2));
+    } else if (storedCoupon.type === "fixed") {
+      discount = Number(Math.min(itemsTotal, Number(storedCoupon.value)).toFixed(2));
+    } else if (storedCoupon.type === "shipping") {
+      shippingDiscountValue = originalShipping;
+      shippingAfterDiscount = 0;
+    }
+    couponMeta = {
+      code: coupon.code,
+      type: storedCoupon.type,
+      value: Number(storedCoupon.value),
+      applied: true,
+      cpfHash: storedCoupon.type === "first_purchase" ? cpfHash : null,
+    };
+    return { itemsDiscount: discount, shippingDiscount: shippingDiscountValue, finalShipping: shippingAfterDiscount, affiliate, couponMeta };
   }
 
   const affiliateUser = await User.findOne({ "affiliate.couponCode": coupon.code }) as unknown as AffiliateUser | null;

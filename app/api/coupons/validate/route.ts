@@ -4,7 +4,6 @@ import { connectMongoDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
 import User from "@/models/User";
 import Coupon from "@/models/Coupon";
-import { hashCpf } from "@/lib/cpf";
 
 type AffiliateData = {
   couponCode?: string;
@@ -24,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
 
-    const { code, cpf } = await request.json();
+    const { code } = await request.json();
 
     if (!code || typeof code !== "string") {
       return NextResponse.json(
@@ -60,43 +59,6 @@ export async function POST(request: NextRequest) {
 
     const storedCoupon = await Coupon.findOne({ code: couponCode }).lean();
 
-    // Mantém compatibilidade com o cupom legado enquanto ele não for
-    // recriado na área administrativa.
-    if (!storedCoupon && couponCode === "PRIMEIRACOMPRA") {
-      if (!cpf) {
-        return NextResponse.json(
-          {
-            error: "Informe seu CPF para usar o cupom PRIMEIRACOMPRA.",
-            requiresCpf: true,
-          },
-          { status: 400 },
-        );
-      }
-
-      const cpfHash = hashCpf(cpf);
-
-      const alreadyUsed = await Order.findOne({
-        "coupon.code": "PRIMEIRACOMPRA",
-        "coupon.cpfHash": cpfHash,
-        "payment.status": "approved",
-      }).lean();
-
-      if (alreadyUsed) {
-        return NextResponse.json(
-          { error: "Este CPF já utilizou o cupom PRIMEIRACOMPRA." },
-          { status: 400 },
-        );
-      }
-
-      return NextResponse.json({
-        coupon: {
-          code: couponCode,
-          type: "first_purchase",
-          value: 10,
-        },
-      });
-    }
-
     if (!storedCoupon) {
       return NextResponse.json(
         { error: "Cupom inválido." },
@@ -112,8 +74,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Este cupom expirou." }, { status: 400 });
     }
 
-    if (storedCoupon.usageLimit && storedCoupon.usageCount >= storedCoupon.usageLimit) {
+    if (storedCoupon.usageLimit !== null && storedCoupon.usageLimit !== undefined && storedCoupon.usageCount >= storedCoupon.usageLimit) {
       return NextResponse.json({ error: "Este cupom atingiu o limite de uso." }, { status: 400 });
+    }
+
+    if (storedCoupon.perUserLimit !== null && storedCoupon.perUserLimit !== undefined) {
+      const userUses = await Order.countDocuments({ userId: user._id, "coupon.code": couponCode, "coupon.applied": true, "payment.status": "approved" });
+      if (userUses >= storedCoupon.perUserLimit) {
+        return NextResponse.json({ error: "Você já atingiu o limite de uso deste cupom." }, { status: 400 });
+      }
     }
 
     if (storedCoupon.firstPurchaseOnly || storedCoupon.type === "first_purchase") {
