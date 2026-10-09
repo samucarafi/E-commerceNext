@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 
 type User = {
   _id: string;
@@ -45,11 +45,6 @@ export default function UserForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // O formulário é um estado editável que precisa acompanhar a troca do usuário selecionado.
-  useEffect(() => {
-    setForm(getInitialForm(user));
-    setError("");
-  }, [user]);
 
   async function submit(e: FormEvent) {
     e.preventDefault();

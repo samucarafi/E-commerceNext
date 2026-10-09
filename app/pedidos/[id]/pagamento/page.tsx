@@ -180,6 +180,7 @@ export default function PaymentPage() {
   return (
     <main className="min-h-screen bg-[#f8f5f2] px-4 py-10">
       <PixPayment
+        key={`${order.payment.mpPaymentId}:${order.payment.status ?? "pending"}:${order.payment.dateOfExpiration ?? ""}`}
         paymentId={String(order.payment.mpPaymentId)}
         orderId={order.orderId}
         qrCode={order.payment.pix?.qr_code}

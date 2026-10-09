@@ -70,7 +70,7 @@ export default function UsuariosAdminClient() {
           </tbody>
         </table>{users.length === 0 && <div className="py-16 text-center text-sm text-gray-400">Nenhum usuário encontrado.</div>}</div>
       </div>
-      {showForm && <UserForm user={editing} onSaved={() => { setShowForm(false); setEditing(null); }} onCancel={() => { setShowForm(false); setEditing(null); }} />}
+      {showForm && <UserForm key={editing ? editing._id : "new"} user={editing} onSaved={() => { setShowForm(false); setEditing(null); }} onCancel={() => { setShowForm(false); setEditing(null); }} />}
     </div>
   );
 }

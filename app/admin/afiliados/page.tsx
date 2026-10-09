@@ -91,12 +91,7 @@ export default function AffiliatesAdminPage() {
     }
   }
 
-  // O efeito inicia uma carga assíncrona; os estados são atualizados após as respostas HTTP.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  // O efeito inicia uma carga assíncrona; os estados são atualizados após as respostas HTTP.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  // O efeito inicia uma carga assíncrona; os estados são atualizados após as respostas HTTP.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+// eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, []);
 
   async function saveConfig() {

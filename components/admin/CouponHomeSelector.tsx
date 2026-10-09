@@ -40,12 +40,7 @@ export default function CouponHomeSelector() {
     }
   }, []);
 
-  // O efeito inicia uma carga assíncrona; os estados são atualizados após a resposta HTTP.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  // O efeito inicia uma carga assíncrona; os estados são atualizados após a resposta HTTP.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  // O efeito inicia uma carga assíncrona; os estados são atualizados após a resposta HTTP.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+// eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void loadCoupons(); }, [loadCoupons]);
 
   useEffect(() => {

@@ -48,11 +48,6 @@ export function PixPayment({
   void _paymentId;
   const [now, setNow] = useState<number | null>(null);
 
-  // Sincroniza os dados recebidos pelo servidor com o estado visual do pagamento.
-  useEffect(() => {
-    setStatus(initialStatus);
-    setExpiration(dateOfExpiration);
-  }, [initialStatus, dateOfExpiration]);
 
   useEffect(() => {
     const clock = window.setInterval(() => setNow(Date.now()), 1000);

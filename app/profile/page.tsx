@@ -28,17 +28,9 @@ export default function ProfilePage() {
     if (!user) return;
     // Sincronização intencional do formulário com o usuário autenticado.
     // O estado local representa campos editáveis, por isso precisa ser atualizado quando o usuário muda.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+// eslint-disable-next-line react-hooks/set-state-in-effect
     setName(user.name);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPhone(user.phone ?? "");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAddress(user.addresses?.[0] ?? emptyAddress);
   }, [user]);
 
