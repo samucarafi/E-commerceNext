@@ -5,7 +5,7 @@ export type OrderStatus =
   | "cancelled"
   | "expired";
 
-export type DeliveryStatus = "processing" | "sent" | "delivered";
+export type DeliveryStatus = "pending" | "processing" | "sent" | "delivered";
 
 export type OrderItem = {
   _id?: string;

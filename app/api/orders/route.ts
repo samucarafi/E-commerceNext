@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-server";
 import Order from "@/models/Order";
 
@@ -11,18 +11,55 @@ type OrderItemLean = {
   type?: "product" | "discount" | "shipping";
 };
 
-export async function GET() {
+const PAYMENT_STATUSES = ["pending", "approved", "rejected", "cancelled", "expired"];
+const DELIVERY_STATUSES = ["pending", "processing", "sent", "delivered"];
+const PAGE_SIZES = [10, 20, 50];
+
+function validDate(value: string | null) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
+export async function GET(request: NextRequest) {
   const user = await getAuthenticatedUser();
 
   if (!user) {
     return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
-  const orders = await Order.find({ userId: user._id })
+  const params = request.nextUrl.searchParams;
+  const paymentStatus = params.get("paymentStatus") ?? "";
+  const deliveryStatus = params.get("deliveryStatus") ?? "";
+  const from = validDate(params.get("from"));
+  const to = validDate(params.get("to"));
+  const requestedPage = Number(params.get("page") ?? 1);
+  const requestedPageSize = Number(params.get("pageSize") ?? 10);
+  const pageSize = PAGE_SIZES.includes(requestedPageSize) ? requestedPageSize : 10;
+  const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1;
+
+  const filter: Record<string, unknown> = { userId: user._id };
+  if (PAYMENT_STATUSES.includes(paymentStatus)) filter["payment.status"] = paymentStatus;
+  if (DELIVERY_STATUSES.includes(deliveryStatus)) filter.deliveryStatus = deliveryStatus;
+
+  if (from || to) {
+    const createdAt: { $gte?: Date; $lt?: Date } = {};
+    if (from) createdAt.$gte = new Date(`${from}T00:00:00.000Z`);
+    if (to) {
+      const end = new Date(`${to}T00:00:00.000Z`);
+      end.setUTCDate(end.getUTCDate() + 1);
+      createdAt.$lt = end;
+    }
+    filter.createdAt = createdAt;
+  }
+
+  const total = await Order.countDocuments(filter);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+
+  const orders = await Order.find(filter)
     .sort({ createdAt: -1 })
-    .select(
-      "orderId customer items totals payment.method payment.status payment.pix deliveryStatus createdAt updatedAt",
-    )
+    .skip((currentPage - 1) * pageSize)
+    .limit(pageSize)
+    .select("orderId customer items totals payment.method payment.status payment.pix deliveryStatus createdAt updatedAt")
     .lean();
 
   return NextResponse.json({
@@ -38,5 +75,6 @@ export async function GET() {
         productId: item.productId ? String(item.productId) : undefined,
       })),
     })),
+    pagination: { page: currentPage, pageSize, total, totalPages },
   });
 }

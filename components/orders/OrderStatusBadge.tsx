@@ -9,6 +9,7 @@ const paymentLabels: Record<OrderStatus, string> = {
 };
 
 const deliveryLabels: Record<DeliveryStatus, string> = {
+  pending: "Entrega pendente",
   processing: "Em preparação",
   sent: "Enviado",
   delivered: "Entregue",
@@ -26,8 +27,7 @@ export function OrderStatusBadge({
       ? paymentLabels[status as OrderStatus]
       : deliveryLabels[status as DeliveryStatus];
 
-  const approved =
-    status === "approved" || status === "delivered";
+  const approved = status === "approved" || status === "delivered";
   const rejected =
     status === "rejected" || status === "cancelled" || status === "expired";
 
@@ -38,7 +38,7 @@ export function OrderStatusBadge({
           ? "bg-emerald-500/15 text-emerald-300"
           : rejected
             ? "bg-red-500/15 text-red-300"
-            : "bg-amber-500/15 text-amber-300"
+            : "bg-amber-500/15 text-amber-800"
       }`}
     >
       {label}
